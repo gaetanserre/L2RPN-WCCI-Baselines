@@ -1,0 +1,3 @@
+- [ ] No hard expert rules
+  - [ ] Train the network with data for which we have expert rules (e.g. stable powerline data and the action is do nothing)
+  - [ ] Epsilon exploration between the network and the expert rules
