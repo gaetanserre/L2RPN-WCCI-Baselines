@@ -1,6 +1,6 @@
 {
     "_PATH_ENV": null,
-    "_init_subtype": "grid2op.Observation.completeObservation.CompleteObservation",
+    "_init_subtype": "grid2op.Observation.CompleteObservation.CompleteObservation",
     "alarms_area_lines": [],
     "alarms_area_names": [],
     "alarms_lines_area": {},
@@ -126,7 +126,7 @@
         "solar",
         "hydro"
     ],
-    "glop_version": "1.6.5",
+    "glop_version": "1.6.4",
     "grid_layout": {
         "sub_0": [
             -280.0,

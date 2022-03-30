@@ -1,7 +1,6 @@
-# L2RPN_WCCI_baselines
+# L2RPN WCCI Baselines
 
 Baselines for the 2022 edition of the L2RPN challenge
-
 
 ## Règles:
 
@@ -19,67 +18,10 @@ Règles établies suite à plusieurs essais sur grid2game
 
 On simule l'action avant de l'appliquer, en cas de prévision d'un game over, on ne fait rien.
 
-## Performance de l'agent DoNothing:
-
-The results for the DN agent are:
-For chronics with id 2019-01-12
-- cumulative reward: 4688.167480
-- number of time steps completed: __288 / 288__
-
-For chronics with id 2019-01-13
-- cumulative reward: 4685.237305
-- number of time steps completed: __288 / 288__
-
-For chronics with id 2019-01-14
-- cumulative reward: 3330.406250
-- number of time steps completed: __219 / 288__
-
-For chronics with id 2019-01-15
-- cumulative reward: 1374.079468
-- number of time steps completed: __89 / 288__
-
-For chronics with id 2019-01-16
-- cumulative reward: 3609.946533
-- number of time steps completed: __235 / 288__
-
-For chronics with id 2019-01-17
-- cumulative reward: 3533.431396
-- number of time steps completed: __233 / 288__
-
-For chronics with id 2019-01-18
-- cumulative reward: 1267.627197
-- number of time steps completed: __85 / 288__
-
-## Performance de l'agent ExpertAgent :
-
-The results for the Expert3 agent are:
-For chronics with id 2019-01-12
-- cumulative reward: 4684.815918
-- number of time steps completed: __288 / 288__
-
-For chronics with id 2019-01-13
-- cumulative reward: 4682.062988
-- number of time steps completed: __288 / 288__
-
-For chronics with id 2019-01-14
-- cumulative reward: 3415.798584
-- number of time steps completed: __225 / 288__
-
-For chronics with id 2019-01-15
-- cumulative reward: 4319.679199
-- number of time steps completed: __288 / 288__
-
-For chronics with id 2019-01-16
-- cumulative reward: 3620.062988
-- number of time steps completed: __235 / 288__
-
-For chronics with id 2019-01-17
-- cumulative reward: 4320.351562
-- number of time steps completed: __288 / 288__
-
-For chronics with id 2019-01-18
-- cumulative reward: 3503.213379
-- number of time steps completed: 238 / 288
+|              | 01-12  | 01-13  | 01-14  | 01-15  | 01-16  | 01-17  | 01-18  | Mean  |
+|-             |-       |-       |-       |-       |-       |-       |-       |-      |
+| Do Nothing   | 288    | 288    | 219    | 89     | 235    | 233    | 85     | 205.2 |
+| Expert Agent | 288    | 288    | 225    | 288    | 235    | 288    | 238    | 264.3 |
 
 ## Résumé :
 

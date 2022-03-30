@@ -2,10 +2,10 @@
     "agent_seed": null,
     "backend_type": "PandaPowerBackend_educ_case14_storage",
     "chronics_max_timestep": "288",
-    "chronics_path": "D:\\Users\\boguslawskieva\\Miniconda3\\envs\\baselines\\lib\\site-packages\\grid2op\\data\\educ_case14_storage\\chronics\\2019-01-18",
+    "chronics_path": "/Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages/grid2op/data/educ_case14_storage/chronics/2019-01-18",
     "cumulative_reward": 3373.38525390625,
     "env_seed": null,
     "env_type": "Environment_educ_case14_storage",
-    "grid_path": "D:\\Users\\boguslawskieva\\Miniconda3\\envs\\baselines\\lib\\site-packages\\grid2op\\data\\educ_case14_storage\\grid.json",
+    "grid_path": "/Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages/grid2op/data/educ_case14_storage/grid.json",
     "nb_timestep_played": 229
 }
