@@ -21,9 +21,9 @@ On simule l'action avant de l'appliquer, en cas de prévision d'un game over, on
 __Tableau des nombres de pas de temps survécus__ : (sur un total de 288)
 
 | Agent\Scenario | 01-12  | 01-13  | 01-14  | 01-15  | 01-16  | 01-17  | 01-18  | Mean  |
-|-             |-       |-       |-       |-       |-       |-       |-       |-      |
-| Do Nothing   | 288    | 288    | 219    | 89     | 235    | 233    | 85     | 205.2 |
-| Expert Agent | 288    | 288    | 225    | 288    | 235    | 288    | 238    | 264.3 |
+|-               |-       |-       |-       |-       |-       |-       |-       |-      |
+| Do Nothing     | 288    | 288    | 219    | 89     | 235    | 233    | 85     | 205.2 |
+| Expert Agent   | 288    | 288    | 225    | 288    | 235    | 288    | 238    | 264.3 |
 
 ## Résumé :
 
