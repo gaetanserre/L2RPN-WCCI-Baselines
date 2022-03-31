@@ -18,17 +18,34 @@ Règles établies suite à plusieurs essais sur grid2game
 
 On simule l'action avant de l'appliquer, en cas de prévision d'un game over, on ne fait rien.
 
-|              | 01-12  | 01-13  | 01-14  | 01-15  | 01-16  | 01-17  | 01-18  | Mean  |
+__Tableau des nombres de pas de temps survécus__ : (sur un total de 288)
+
+| Agent\Scenario | 01-12  | 01-13  | 01-14  | 01-15  | 01-16  | 01-17  | 01-18  | Mean  |
 |-             |-       |-       |-       |-       |-       |-       |-       |-      |
 | Do Nothing   | 288    | 288    | 219    | 89     | 235    | 233    | 85     | 205.2 |
 | Expert Agent | 288    | 288    | 225    | 288    | 235    | 288    | 238    | 264.3 |
 
 ## Résumé :
 
-Réussite :
+__Réussite__ :
 - Nombre de pas de temps survécus bien supérieur (on passe deux scénarios de plus)
 
-Mais règles incomplètes :
+__Mais règles incomplètes__ :
 - Oscillations autour du seuil de 90%
 - Les règles du redispatching marchent mal
-- Situation où la centrale éolienne produit beaucoup non réglée
+- Situation où la centrale éolienne produit beaucoup non réglée : il faudrait écrêter
+
+__Travail investi__ :
+- Temps consacré :
+  - Gaëtan : un après-midi
+  - Eva : l'équivalent de deux jours
+- 3 versions d'algorithme testées
+- Une dizaine de configurations de seuils essayées
+
+On réussit seulement 2 scénarios en plus
+
+__Limites__ :
+- La détermination des bons seuils est très chronophage
+- Gestion temporelle non prise en compte : si on maintient la batterie en charge pendant plusieurs pas de temps quand il y a un problème (afin d'éviter les oscillations), gestion de sa recharge compliquée
+- Nous rencontrons des difficultés sur le cas 14 noeuds et deux batteries. Il y aura encore plus de difficultés sur le cas 118 noeuds avec encore plus de batteries
+- Cette approche n'est pas robuste à un changement de topologie, qu'il soit décidé (maintenance) ou subi (N-1)
