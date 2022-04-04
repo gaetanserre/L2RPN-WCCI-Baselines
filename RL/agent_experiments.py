@@ -6,6 +6,7 @@ from grid2op.Chronics import MultifolderWithCache
 from l2rpn_baselines.utils import GymEnvWithRecoWithDN
 from grid2op.Parameters import Parameters
 from grid2op.utils import ScoreL2RPN2020
+import torch
 
 from utils import *
 
@@ -41,6 +42,7 @@ train_args["save_path"] = save_path
 train_args["name"] = name
 train_args["verbose"] = 1
 train_args["gymenv_class"] = gymenv_class
+train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 # %%
@@ -67,7 +69,7 @@ train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute
                                   # curtailment part of the observation
                                   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                   ]
-train_args["act_attr_to_keep"] = ["curtail", "set_storage"]
+train_args["act_attr_to_keep"] = ["redispatch", "curtail", "set_storage"]
 train_args["iterations"] = 20
 train_args["learning_rate"] = 3e-4
 train_args["net_arch"] = [200, 200, 200, 200]
@@ -84,7 +86,7 @@ train_args["batch_size"] = 5
 
 # %%
 p = Parameters()
-p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
+# p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True It causes errors during training
 
 env = grid2op.make(train_env_name,
                    reward_class=CustomReward,
@@ -106,5 +108,3 @@ results = eval_agent(env_name,
            gymenv_class,
            verbose)
 print(results)
-
-
