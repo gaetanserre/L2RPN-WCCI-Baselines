@@ -194,7 +194,6 @@ def train(env,
             env.close()
 
     """
-    print(locals())
     if not _CAN_USE_STABLE_BASELINE:
         raise ImportError("Cannot use this function as stable baselines3 is not installed")
     
