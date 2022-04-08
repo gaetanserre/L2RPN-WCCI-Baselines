@@ -1,4 +1,10 @@
 
 .DS_Store
+__pycache__/
+
 output_agents
 RL/saved_model
+RL/examples/ppo_stable_baselines/__init__.py
+RL/examples/__init__.py
+test.py
+RL/logs/
