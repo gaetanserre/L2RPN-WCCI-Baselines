@@ -96,17 +96,18 @@ env = grid2op.make(train_env_name,
                    chronics_class=MultifolderWithCache,
                    param=p)
 
-lr_values = np.array([3e-4, 3e-5, 3e-3])
+lr_values = np.array([3e-4, 3e-6, 3e-2])
 agents = iter_hyperparameters(env, train_args, name, "learning_rate", lr_values)
 
 # %%
 env_name = "l2rpn_wcci_2022_dev_val"
-results = eval_agent(env_name,
-           2,
-           agents[0][0],
-           save_path,
-           SCOREUSED,
-           nb_process_stats,
-           gymenv_class,
-           verbose)
-print(results)
+for agent_name, _ in agents:
+  results = eval_agent(env_name,
+            21,
+            agent_name,
+            save_path,
+            SCOREUSED,
+            nb_process_stats,
+            gymenv_class,
+            verbose)
+  print(results)
