@@ -54,11 +54,11 @@ def generate_statistics(nm_val, nm_test, SCOREUSED, nb_process_stats, name_stats
 
 def train_agent(env, train_args:dict, max_iter:int = None):
   """
-  Parameters
-  ----------
-
   This function trains an agent using the PPO algorithm
   with the arguments described in train_args.
+  
+  Parameters
+  ----------
 
   env: :class:`grid2op.Environment`
       The environment on which you need to train your agent.
@@ -99,11 +99,11 @@ def iter_hyperparameters(env,
                          hyperparam_values: Iterable,
                          max_iter:int = None):
   """
-  Parameters
-  ----------
-
   For each value v contained in `hyperparam_values`, this function
   trains an agent by setting the hyperparameter `hyperparam_name` to v.
+  
+  Parameters
+  ----------
 
   env: :class:`grid2op.Environment`
       The environment on which you need to train your agent.
@@ -151,11 +151,11 @@ def eval_agent(env_name: str,
                gymenv_class,
                verbose):
   """
-  Parameters
-  ----------
-
   This function evaluates a trained agent by comparing it to a DoNothing agent
   and a RecoPowerlineAgent.
+  
+  Parameters
+  ----------
 
   env_name: `str`
       The environment name on which evaluate the agents.
