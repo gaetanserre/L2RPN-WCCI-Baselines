@@ -7,11 +7,14 @@ from grid2op.utils import EpisodeStatistics
 from grid2op.dtypes import dt_int
 from lightsim2grid import LightSimBackend
 
-import sys
-sys.path.insert(0, "examples/")
+# import sys
+# sys.path.insert(0, "examples/")
 
-from ppo_stable_baselines.A_prep_env import get_env_seed
-from ppo_stable_baselines.C_evaluate_trained_model import get_ts_survived_dn, get_ts_survived_reco, load_agent
+# from ppo_stable_baselines.A_prep_env import get_env_seed
+# from ppo_stable_baselines.C_evaluate_trained_model import get_ts_survived_dn, get_ts_survived_reco, load_agent
+
+from examples.ppo_stable_baselines.A_prep_env import get_env_seed
+from examples.ppo_stable_baselines.C_evaluate_trained_model import get_ts_survived_dn, get_ts_survived_reco, load_agent
 
 
 def split_train_val_test_sets(env, deep_copy):

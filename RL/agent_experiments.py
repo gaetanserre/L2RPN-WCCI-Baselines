@@ -7,20 +7,22 @@ from l2rpn_baselines.utils import GymEnvWithRecoWithDN
 from grid2op.Parameters import Parameters
 from grid2op.utils import ScoreL2RPN2020
 import torch
+import datetime
+import sys
 
 from utils import *
 
-import sys
-sys.path.insert(0, "examples/")
-
-from ppo_stable_baselines.B_train_agent import CustomReward
+# sys.path.insert(0, "examples/")
+# from ppo_stable_baselines.B_train_agent import CustomReward
+from examples.ppo_stable_baselines.B_train_agent import CustomReward
 
 # %%
 ENV_NAME = "l2rpn_wcci_2022_dev"
 
 # Split sets and statistics parameters
 is_windows = sys.platform.startswith("win32")
-nb_process_stats = 1 if not is_windows else 1
+is_windows_or_darwin = sys.platform.startswith("win32") or sys.platform.startswith("darwin")
+nb_process_stats = 4 if not is_windows_or_darwin else 1
 deep_copy = is_windows  # force the deep copy on windows (due to permission issue in symlink in windows)
 verbose = 1
 SCOREUSED = ScoreL2RPN2020  # ScoreICAPS2021
@@ -29,7 +31,7 @@ name_stats = "_reco_powerline"
 # Train parameters
 train_env_name = "l2rpn_wcci_2022_dev_train"
 save_path = "./saved_model"
-name = "expe_GymEnvWithRecoWithDN_2022"
+name = '_'.join(["GymEnvWithRecoWithDN", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
 gymenv_class = GymEnvWithRecoWithDN
 
 
@@ -70,7 +72,7 @@ train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute
                                   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                   ]
 train_args["act_attr_to_keep"] = ["curtail", "set_storage"]
-train_args["iterations"] = 20
+train_args["iterations"] = 2048*10
 train_args["learning_rate"] = 3e-4
 train_args["net_arch"] = [200, 200, 200, 200]
 train_args["gamma"] = 0.999
@@ -80,8 +82,8 @@ train_args["normalize_obs"] = True
 
 train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 100_000)
 
-train_args["n_steps"] = 10
-train_args["batch_size"] = 5
+train_args["n_steps"] = 2048
+train_args["batch_size"] = 64
 
 
 # %%
@@ -94,7 +96,7 @@ env = grid2op.make(train_env_name,
                    chronics_class=MultifolderWithCache,
                    param=p)
 
-lr_values = np.array([3e-4, 0.2])
+lr_values = np.array([3e-4, 3e-5, 3e-3])
 agents = iter_hyperparameters(env, train_args, name, "learning_rate", lr_values)
 
 # %%

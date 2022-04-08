@@ -281,6 +281,7 @@ def train(env,
     # train it
     agent.nn_model.learn(total_timesteps=iterations,
                          callback=checkpoint_callback,
+                        #  log_interval=10,
                          # eval_env=eval_env  # TODO
                          )
 
