@@ -181,8 +181,8 @@ def eval_agent(env_name: str,
   env_val = grid2op.make(env_name, backend=LightSimBackend())
   
   # retrieve the reference data
-  dn_ts_survived = get_ts_survived_dn(env_name)
-  reco_ts_survived = get_ts_survived_reco(env_name)
+  dn_ts_survived = get_ts_survived_dn(env_name, nb_scenario)
+  reco_ts_survived = get_ts_survived_reco(env_name, nb_scenario)
 
   my_score = SCOREUSED(env_val,
                         nb_scenario=nb_scenario,

@@ -46,7 +46,7 @@ def load_agent(env, load_path, name,
     return trained_agent
 
 
-def get_ts_survived_dn(env_name):
+def get_ts_survived_dn(env_name, nb_scenario):
     dict_ = _aux_get_env(env_name, dn=True)
     res = []
     for kk in range(nb_scenario):
@@ -56,7 +56,7 @@ def get_ts_survived_dn(env_name):
     res -= 1  # the first observation (after reset) is counted as a step in the runner
     return res
 
-def get_ts_survived_reco(env_name):
+def get_ts_survived_reco(env_name, nb_scenario):
     dict_ = _aux_get_env(env_name, name_stat=name_stats)
     res = []
     for kk in range(nb_scenario):
