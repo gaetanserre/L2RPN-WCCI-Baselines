@@ -3,7 +3,7 @@ import grid2op
 import numpy as np
 from lightsim2grid import LightSimBackend
 from grid2op.Chronics import MultifolderWithCache
-from l2rpn_baselines.utils import GymEnvWithRecoWithDN
+from CustomGymEnv import CustomGymEnv
 from grid2op.Parameters import Parameters
 from grid2op.utils import ScoreL2RPN2020
 import torch
@@ -30,7 +30,7 @@ name_stats = "_reco_powerline"
 env_name_train = '_'.join([ENV_NAME, "train"])
 save_path = "./saved_model"
 name = '_'.join(["GymEnvWithRecoWithDN", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
-gymenv_class = GymEnvWithRecoWithDN
+gymenv_class = CustomGymEnv
 
 
 # %%

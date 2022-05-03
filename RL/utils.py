@@ -1,6 +1,6 @@
 import numpy as np
 import grid2op
-from collections.abc import Iterable
+from typing import List
 from l2rpn_baselines.PPO_SB3 import train
 from grid2op.Agent import RecoPowerlineAgent
 from grid2op.utils import EpisodeStatistics
@@ -113,7 +113,7 @@ def iter_hyperparameters(env,
                          train_args:dict,
                          name:str,
                          hyperparam_name:str,
-                         hyperparam_values: Iterable,
+                         hyperparam_values: List,
                          max_iter:int = None):
   """
   For each value v contained in `hyperparam_values`, this function
