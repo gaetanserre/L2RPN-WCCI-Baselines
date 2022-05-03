@@ -77,7 +77,7 @@ train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute
                                   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                   ]
 train_args["act_attr_to_keep"] = ["curtail", "set_storage"]
-train_args["iterations"] = 700_000
+train_args["iterations"] = 400_000
 train_args["learning_rate"] = 3e-4
 train_args["net_arch"] = [200, 200, 200, 200]
 train_args["gamma"] = 0.999
@@ -104,8 +104,8 @@ if filter_chronics is not None:
   env_train.chronics_handler.real_data.set_filter(filter_chronics)
   env_train.chronics_handler.real_data.reset()
 
-values_to_test = np.array([3e-5, 3e-4, 3e-3])
-var_to_test = "learning_rate"
+values_to_test = np.array([{"safe_max_rho": 0.5}, {"safe_max_rho": 0.7}, {"safe_max_rho": 0.9}])
+var_to_test = "gymenv_kwargs"
 agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_to_test)
 
 # %%
