@@ -10,6 +10,11 @@ import json
 import os
 from grid2op.Parameters import Parameters
 
+# Visualization
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 from examples.ppo_stable_baselines.A_prep_env import get_env_seed
 from examples.ppo_stable_baselines.C_evaluate_trained_model import get_ts_survived_dn, get_ts_survived_reco, load_agent
 
@@ -226,4 +231,23 @@ def eval_agent(env_name: str,
       best_than_reco += my_ts >= reco_ts
   print(f"The agent \"{agent_name}\" beats \"reco powerline\" baseline in {best_than_reco} out of {len(reco_ts_survived)} episodes")
 
-  return ts_survived, dn_ts_survived, reco_ts_survived
+  return np.array(ts_survived), np.array(dn_ts_survived), np.array(reco_ts_survived)
+
+def create_bar_plot(ts_survived, dn_ts_survived, reco_ts_survived, path=None):
+  scenarios = [i+1 for i in range(len(ts_survived))] + ["Mean"]
+  d = {"Scenarios": scenarios,
+       "Agent": np.append(ts_survived, [ts_survived.mean()]),
+       "Do Nothing": np.append(dn_ts_survived, dn_ts_survived.mean()),
+       "Reco": np.append(reco_ts_survived, reco_ts_survived.mean())}
+       
+  df = pd.DataFrame(d)
+  tidy = df.melt(id_vars="Scenarios").rename(columns=str.title)
+  tidy.rename(columns={"Value": "Survived steps", "Variable": "Agents"}, inplace=True)
+  fig, ax1 = plt.subplots(figsize=(10, 5))
+  sns.barplot(x="Scenarios", y="Survived steps", hue="Agents", data=tidy, palette=("magma"), ax=ax1)
+  ax1.axhline(2017, color="black", label="Maximum time steps")
+  plt.legend()
+  sns.despine(fig)
+  if path is not None:
+    plt.savefig(path)
+  plt.show()

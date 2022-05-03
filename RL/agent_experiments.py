@@ -111,7 +111,7 @@ agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_t
 # %%
 for i, (agent_name, _) in enumerate(agents):
   results = eval_agent(ENV_NAME,
-            2,
+            21,
             agent_name,
             save_path,
             SCOREUSED,
