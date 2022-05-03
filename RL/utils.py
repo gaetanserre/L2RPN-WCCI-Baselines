@@ -6,13 +6,9 @@ from grid2op.Agent import RecoPowerlineAgent
 from grid2op.utils import EpisodeStatistics
 from grid2op.dtypes import dt_int
 from lightsim2grid import LightSimBackend
-
-
-# import sys
-# sys.path.insert(0, "examples/")
-
-# from ppo_stable_baselines.A_prep_env import get_env_seed
-# from ppo_stable_baselines.C_evaluate_trained_model import get_ts_survived_dn, get_ts_survived_reco, load_agent
+import json
+import os
+from grid2op.Parameters import Parameters
 
 from examples.ppo_stable_baselines.A_prep_env import get_env_seed
 from examples.ppo_stable_baselines.C_evaluate_trained_model import get_ts_survived_dn, get_ts_survived_reco, load_agent
@@ -26,31 +22,40 @@ def split_train_val_test_sets(env, deep_copy):
                                     pct_test=4.2,
                                     deep_copy=deep_copy)
 
-def generate_statistics(nm_val, nm_test, SCOREUSED, nb_process_stats, name_stats, verbose):
-  # computes some statistics for val / test to compare performance of 
+def generate_statistics(env_list, SCOREUSED, nb_process_stats, name_stats, verbose, filter_fun=None):
+  # computes some statistics for environments in env_list (ex : val / test) to compare performance of 
   # some agents with the do nothing for example
   
   max_int = np.iinfo(dt_int).max
-  for nm_ in [nm_val, nm_test]:
+  for nm_ in env_list:
     env_tmp = grid2op.make(nm_, backend=LightSimBackend())
-    nb_scenario = len(env_tmp.chronics_handler.subpaths)
-    print(f"{nm_}: {nb_scenario}")
-    my_score = SCOREUSED(env_tmp,
-                        nb_scenario=nb_scenario,
-                        env_seeds=np.random.randint(low=0,
-                                                    high=max_int,
-                                                    size=nb_scenario,
-                                                    dtype=dt_int),
-                        agent_seeds=[0 for _ in range(nb_scenario)],
-                        verbose=verbose,
-                        nb_process_stats=nb_process_stats)
-    # compute statistics for reco powerline
-    seeds = get_env_seed(nm_)
-    reco_powerline_agent = RecoPowerlineAgent(env_tmp.action_space)
-    stats_reco = EpisodeStatistics(env_tmp, name_stats=name_stats)
-    stats_reco.compute(nb_scenario=nb_scenario,
-                      agent=reco_powerline_agent,
-                      env_seeds=seeds)
+    if filter_fun is not None:
+      env_tmp.chronics_handler.real_data.set_filter(filter_fun)
+      env_tmp.chronics_handler.real_data.reset()
+    is_statistics_already_computed = np.all([os.path.exists(os.path.join(grid2op.get_current_local_dir(), 
+                        nm_, 
+                        "_statistics_"+name_stats, 
+                        os.path.basename(el))) 
+                        for el in env_tmp.chronics_handler.real_data.available_chronics()])
+    if not is_statistics_already_computed:
+      nb_scenario = len(env_tmp.chronics_handler.subpaths)
+      print(f"{nm_}: {nb_scenario}")
+      my_score = SCOREUSED(env_tmp,
+                          nb_scenario=nb_scenario,
+                          env_seeds=np.random.randint(low=0,
+                                                      high=max_int,
+                                                      size=nb_scenario,
+                                                      dtype=dt_int),
+                          agent_seeds=[0 for _ in range(nb_scenario)],
+                          verbose=verbose,
+                          nb_process_stats=nb_process_stats)
+      # compute statistics for reco powerline
+      seeds = get_env_seed(nm_)
+      reco_powerline_agent = RecoPowerlineAgent(env_tmp.action_space)
+      stats_reco = EpisodeStatistics(env_tmp, name_stats=name_stats)
+      stats_reco.compute(nb_scenario=nb_scenario,
+                        agent=reco_powerline_agent,
+                        env_seeds=seeds)
 
 
 def train_agent(env, train_args:dict, max_iter:int = None):
@@ -84,10 +89,16 @@ def train_agent(env, train_args:dict, max_iter:int = None):
   _ = env.reset()
   # env.chronics_handler.real_data.set_filter(lambda x: re.match(r".*february_000$", x) is not None)
   # env.chronics_handler.real_data.set_filter(lambda x: re.match(r".*00$", x) is not None)
-  env.chronics_handler.real_data.set_filter(lambda x: True)
-  env.chronics_handler.real_data.reset()
   # see https://grid2op.readthedocs.io/en/latest/environment.html#optimize-the-data-pipeline
   # for more information !
+  full_path = os.path.join(train_args["save_path"], train_args["name"], 'dict_train_args.json')
+  dict_to_json = train_args.copy()
+  dict_to_json["n_available_chronics"] = len(env.chronics_handler.real_data.available_chronics())
+  dict_to_json["gymenv_class"] = dict_to_json["gymenv_class"].__name__
+  dict_to_json["device"] = str(dict_to_json["device"])
+  os.makedirs(os.path.join(train_args["save_path"], train_args["name"]), exist_ok=True)
+  with open(full_path, 'x') as fp:
+    json.dump(dict_to_json, fp, indent=4)
 
   print("environment loaded !")
   return train(env, **train_args)
@@ -148,9 +159,12 @@ def eval_agent(env_name: str,
                agent_name: str,
                load_path: str,
                SCOREUSED,
-               nb_process_stats,
                gymenv_class,
-               verbose):
+               verbose,
+               nb_process_stats=1,
+               gymenv_kwargs={},
+               param=Parameters(),
+               filter_fun=None):
   """
   This function evaluates a trained agent by comparing it to a DoNothing agent
   and a RecoPowerlineAgent.
@@ -179,7 +193,10 @@ def eval_agent(env_name: str,
   """
 
   # create the environment
-  env_val = grid2op.make(env_name, backend=LightSimBackend())
+  env_val = grid2op.make(env_name, backend=LightSimBackend(), param=param)
+  if filter_fun is not None:
+    env_val.chronics_handler.real_data.set_filter(filter_fun)
+    env_val.chronics_handler.real_data.reset()
   
   # retrieve the reference data
   dn_ts_survived = get_ts_survived_dn(env_name, nb_scenario)
@@ -192,7 +209,7 @@ def eval_agent(env_name: str,
                         verbose=verbose,
                         nb_process_stats=nb_process_stats)
 
-  my_agent = load_agent(env_val, load_path=load_path, name=agent_name, gymenv_class=gymenv_class)
+  my_agent = load_agent(env_val, load_path=load_path, name=agent_name, gymenv_class=gymenv_class, gymenv_kwargs=gymenv_kwargs)
   _, ts_survived, _ = my_score.get(my_agent)
   
   # compare with do nothing

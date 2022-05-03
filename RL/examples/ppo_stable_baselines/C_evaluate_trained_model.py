@@ -14,9 +14,6 @@ from grid2op.utils import ScoreICAPS2021, ScoreL2RPN2020
 from lightsim2grid import LightSimBackend
 from grid2op.gym_compat import GymEnv
 
-import sys
-sys.path.insert(0, "../../.")
-
 from l2rpn_baselines.PPO_SB3 import evaluate
 
 from .A_prep_env import _aux_get_env, get_env_seed, name_stats
