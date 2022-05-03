@@ -3,7 +3,7 @@ import grid2op
 import numpy as np
 from lightsim2grid import LightSimBackend
 from grid2op.Chronics import MultifolderWithCache
-from CustomGymEnv import CustomGymEnv
+from l2rpn_baselines.utils import GymEnvWithRecoWithDN
 from grid2op.Parameters import Parameters
 from grid2op.utils import ScoreL2RPN2020
 import torch
@@ -28,9 +28,9 @@ name_stats = "_reco_powerline"
 
 # Train parameters
 env_name_train = '_'.join([ENV_NAME, "train"])
-save_path = "./saved_model/safe_max_rho/"
-name = '_'.join(["GymEnvWithRecoWithDN", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
-gymenv_class = CustomGymEnv
+save_path = "./saved_model/lr/"
+name = '_'.join(["CustomGymEnv", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
+gymenv_class = GymEnvWithRecoWithDN
 
 
 # %%
@@ -80,7 +80,7 @@ train_args["iterations"] = 400_000
 train_args["learning_rate"] = 3e-4
 train_args["net_arch"] = [200, 200, 200, 200]
 train_args["gamma"] = 0.999
-train_args["gymenv_kwargs"] = {"safe_max_rho": 0.7}
+train_args["gymenv_kwargs"] = {"safe_max_rho": 0.9}
 train_args["normalize_act"] = True
 train_args["normalize_obs"] = True
 
