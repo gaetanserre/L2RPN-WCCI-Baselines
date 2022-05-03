@@ -47,7 +47,7 @@ train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cp
 # %%
 # Generate statistics
 
-filter_chronics = None
+filter_chronics = lambda _: True
 
 try:
   # nm_train, nm_val, nm_test = split_train_val_test_sets(env, deep_copy)
@@ -100,9 +100,9 @@ env_train = grid2op.make(ENV_NAME,
                    backend=LightSimBackend(),
                    chronics_class=MultifolderWithCache,
                    param=p)
-if filter_chronics is not None:
-  env_train.chronics_handler.real_data.set_filter(filter_chronics)
-  env_train.chronics_handler.real_data.reset()
+
+env_train.chronics_handler.real_data.set_filter(filter_chronics)
+env_train.chronics_handler.real_data.reset()
 
 values_to_test = np.array([3e-5, 3e-4, 3e-3])
 var_to_test = "learning_rate"
