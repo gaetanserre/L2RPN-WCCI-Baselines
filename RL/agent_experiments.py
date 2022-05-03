@@ -103,6 +103,6 @@ if filter_chronics is not None:
   env_train.chronics_handler.real_data.set_filter(filter_chronics)
   env_train.chronics_handler.real_data.reset()
 
-values_to_test = np.array([{"safe_max_rho": 0.5}, {"safe_max_rho": 0.7}, {"safe_max_rho": 0.9}])
+values_to_test = np.array([{"safe_max_rho": 0.6}, {"safe_max_rho": 0.7}, {"safe_max_rho": 0.9}])
 var_to_test = "gymenv_kwargs"
 agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_to_test)
