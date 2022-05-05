@@ -47,7 +47,7 @@ train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cp
 # %%
 # Generate statistics
 
-filter_chronics = lambda _: True
+filter_chronics = None
 
 try:
   nm_train, nm_val, nm_test = split_train_val_test_sets(ENV_NAME, deep_copy)
@@ -82,7 +82,7 @@ train_args["net_arch"] = [200, 200, 200, 200]
 train_args["gamma"] = 0.999
 train_args["gymenv_kwargs"] = {"safe_max_rho": 0.9}
 train_args["normalize_act"] = True
-train_args["normalize_obs"] = True
+train_args["normalize_obs"] = False
 
 train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 100_000)
 
@@ -100,8 +100,9 @@ env_train = grid2op.make(ENV_NAME,
                    chronics_class=MultifolderWithCache,
                    param=p)
 
-env_train.chronics_handler.real_data.set_filter(filter_chronics)
-env_train.chronics_handler.real_data.reset()
+if filter_chronics is not None:
+  env_train.chronics_handler.real_data.set_filter(filter_chronics)
+  env_train.chronics_handler.real_data.reset()
 
 values_to_test = np.array([{"safe_max_rho": 0.5}, {"safe_max_rho": 0.7}, {"safe_max_rho": 0.9}])
 var_to_test = "gymenv_kwargs"
