@@ -16,6 +16,10 @@ from utils import *
 from examples.ppo_stable_baselines.B_train_agent import CustomReward
 
 # %%
+
+# torch.cuda.set_device(1)
+
+# %%
 ENV_NAME = "l2rpn_wcci_2022_dev"
 
 # Split sets and statistics parameters
@@ -80,17 +84,17 @@ train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute
                                   ]
 train_args["act_attr_to_keep"] = ["curtail", "set_storage"]
 train_args["iterations"] = 700_000
-train_args["learning_rate"] = 3e-4
-train_args["net_arch"] = [200, 200, 200, 200]
+train_args["learning_rate"] =  1e-4 # 3e-4
+train_args["net_arch"] = [300, 300, 300] # [200, 200, 200, 200]
 train_args["gamma"] = 0.999
-train_args["gymenv_kwargs"] = {"safe_max_rho": 0.9}
+train_args["gymenv_kwargs"] = {"safe_max_rho": 0.2} # {"safe_max_rho": 0.9}
 train_args["normalize_act"] = True
 train_args["normalize_obs"] = True
 
 train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 100_000)
 
-train_args["n_steps"] = 256
-train_args["batch_size"] = 64
+train_args["n_steps"] = 16 # 256
+train_args["batch_size"] = 16 # 64
 
 
 # %%
@@ -104,15 +108,26 @@ p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True # It causes errors during t
 #                    param=p)
 
 env_train = grid2op.make(ENV_NAME,
-                   reward_class=CustomReward,
+                   reward_class=CustomReward2,
                    backend=LightSimBackend(),
                    chronics_class=MultifolderWithCache,
                    param=p)
 env_train.chronics_handler.real_data.set_filter(filter_chronics)
 env_train.chronics_handler.real_data.reset()
 
-values_to_test = np.array([3e-5, 3e-4, 3e-3])
-var_to_test = "learning_rate"
+# def lr_fun(x_left):
+#     x = 1 - x_left
+#     if x <= 0.5:
+#         lr = 1e-3 + (1e-6 - 1e-3) * x / 0.5
+#     else :
+#         lr = 1e-6
+#     return lr
+
+# values_to_test = np.array([3e-6, lr_fun])
+# var_to_test = "learning_rate"
+
+values_to_test = [{"safe_max_rho": 0.6}]
+var_to_test = "gymenv_kwargs"
 agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_to_test)
 
 # %%
