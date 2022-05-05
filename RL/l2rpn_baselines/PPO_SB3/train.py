@@ -231,7 +231,11 @@ def train(env,
                 f.write("I have encoded the observation space !\n DO NOT MODIFY !")
         for attr_nm in obs_attr_to_keep:
             env_gym.observation_space.normalize_attr(attr_nm)
-    
+
+    import numpy as np
+    print(np.any(np.isinf(env_gym.observation_space.high)))
+    print(np.any(np.isinf(env_gym.observation_space.low)))
+
     # Save a checkpoint every "save_every_xxx_steps" steps
     checkpoint_callback = None
     if save_every_xxx_steps is not None:

@@ -82,7 +82,7 @@ train_args["net_arch"] = [200, 200, 200, 200]
 train_args["gamma"] = 0.999
 train_args["gymenv_kwargs"] = {"safe_max_rho": 0.9}
 train_args["normalize_act"] = True
-train_args["normalize_obs"] = False
+train_args["normalize_obs"] = True
 
 train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 100_000)
 
