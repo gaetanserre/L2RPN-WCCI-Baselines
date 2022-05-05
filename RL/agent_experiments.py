@@ -50,9 +50,8 @@ train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cp
 filter_chronics = lambda _: True
 
 try:
-  # nm_train, nm_val, nm_test = split_train_val_test_sets(env, deep_copy)
-  # generate_statistics([nm_val, nm_test], SCOREUSED, nb_process_stats, name_stats, verbose)
-  generate_statistics([ENV_NAME],
+  nm_train, nm_val, nm_test = split_train_val_test_sets(env, deep_copy)
+  generate_statistics([nm_val, nm_test],
                       SCOREUSED,
                       nb_process_stats,
                       name_stats,
