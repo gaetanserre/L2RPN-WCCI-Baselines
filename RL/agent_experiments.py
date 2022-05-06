@@ -8,6 +8,7 @@ from grid2op.utils import ScoreL2RPN2020
 import torch
 import datetime
 import sys
+import re
 
 from utils import *
 from CustomGymEnv import CustomGymEnv
@@ -47,11 +48,14 @@ train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cp
 # %%
 # Generate statistics
 
-filter_chronics = None
+def filter_chronics(x):
+  list_chronics = ['2050-01-10_0', '2050-08-01_7'] # Names of chronics to keep
+  p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
+  return re.match(p, x) is not None
 
 try:
-  nm_train, nm_val, nm_test = split_train_val_test_sets(ENV_NAME, deep_copy)
-  generate_statistics([nm_val, nm_test],
+  #nm_train, nm_val, nm_test = split_train_val_test_sets(ENV_NAME, deep_copy)
+  generate_statistics([ENV_NAME],
                       SCOREUSED,
                       nb_process_stats,
                       name_stats,
@@ -75,24 +79,24 @@ train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute
                                   # curtailment part of the observation
                                   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                   ]
-train_args["act_attr_to_keep"] = ["curtail", "set_storage"]
-train_args["iterations"] = 400_000
-train_args["learning_rate"] = 3e-4
-train_args["net_arch"] = [200, 200, 200, 200]
+train_args["act_attr_to_keep"] = ["set_storage"]
+train_args["iterations"] = 1_000_000
+train_args["learning_rate"] = 1e-4
+train_args["net_arch"] = [300, 300, 300]
 train_args["gamma"] = 0.999
-train_args["gymenv_kwargs"] = {"safe_max_rho": 0.9}
+train_args["gymenv_kwargs"] = {"safe_max_rho": 0.1}
 train_args["normalize_act"] = True
 train_args["normalize_obs"] = True
 
 train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 100_000)
 
-train_args["n_steps"] = 256
-train_args["batch_size"] = 64
+train_args["n_steps"] = 16
+train_args["batch_size"] = 16
 
 
 # %%
 p = Parameters()
-p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True # It causes errors during training
+p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
 
 env_train = grid2op.make(ENV_NAME,
                    reward_class=CustomReward,

@@ -218,19 +218,20 @@ def eval_agent(env_name: str,
   my_agent = load_agent(env_val, load_path=load_path, name=agent_name, gymenv_class=gymenv_class, gymenv_kwargs=gymenv_kwargs)
   _, ts_survived, _ = my_score.get(my_agent)
   
-  # compare with do nothing
-  best_than_dn = 0
-  for my_ts, dn_ts in zip(ts_survived, dn_ts_survived):
-      print(f"\t{':-)' if my_ts >= dn_ts else ':-('} I survived {my_ts} steps vs {dn_ts} for do nothing ({my_ts - dn_ts})")
-      best_than_dn += my_ts >= dn_ts
-  print(f"The agent \"{agent_name}\" beats \"do nothing\" baseline in {best_than_dn} out of {len(dn_ts_survived)} episodes")
-  
-  # compare with reco powerline
-  best_than_reco = 0
-  for my_ts, reco_ts in zip(ts_survived, reco_ts_survived):
-      print(f"\t{':-)' if my_ts >= reco_ts else ':-('} I survived {my_ts} steps vs {reco_ts} for reco powerline ({my_ts - reco_ts})")
-      best_than_reco += my_ts >= reco_ts
-  print(f"The agent \"{agent_name}\" beats \"reco powerline\" baseline in {best_than_reco} out of {len(reco_ts_survived)} episodes")
+  if verbose:
+    # compare with do nothing
+    best_than_dn = 0
+    for my_ts, dn_ts in zip(ts_survived, dn_ts_survived):
+        print(f"\t{':-)' if my_ts >= dn_ts else ':-('} I survived {my_ts} steps vs {dn_ts} for do nothing ({my_ts - dn_ts})")
+        best_than_dn += my_ts >= dn_ts
+    print(f"The agent \"{agent_name}\" beats \"do nothing\" baseline in {best_than_dn} out of {len(dn_ts_survived)} episodes")
+    
+    # compare with reco powerline
+    best_than_reco = 0
+    for my_ts, reco_ts in zip(ts_survived, reco_ts_survived):
+        print(f"\t{':-)' if my_ts >= reco_ts else ':-('} I survived {my_ts} steps vs {reco_ts} for reco powerline ({my_ts - reco_ts})")
+        best_than_reco += my_ts >= reco_ts
+    print(f"The agent \"{agent_name}\" beats \"reco powerline\" baseline in {best_than_reco} out of {len(reco_ts_survived)} episodes")
 
   return np.array(ts_survived), np.array(dn_ts_survived), np.array(reco_ts_survived)
 
