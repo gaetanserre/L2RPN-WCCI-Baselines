@@ -7,3 +7,4 @@ RL/examples/ppo_stable_baselines/__init__.py
 RL/examples/__init__.py
 test.py
 RL/logs/
+study_rl_agent
