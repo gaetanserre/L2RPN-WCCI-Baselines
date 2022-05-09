@@ -21,7 +21,7 @@ ENV_NAME = "l2rpn_wcci_2022_dev"
 # Split sets and statistics parameters
 is_windows = sys.platform.startswith("win32")
 is_windows_or_darwin = is_windows or sys.platform.startswith("darwin")
-nb_process_stats = 4 if not is_windows_or_darwin else 1
+nb_process_stats = 1 if not is_windows_or_darwin else 1
 deep_copy = is_windows  # force the deep copy on windows (due to permission issue in symlink in windows)
 verbose = 1
 SCOREUSED = ScoreL2RPN2020  # ScoreICAPS2021
