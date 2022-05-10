@@ -29,7 +29,7 @@ name_stats = "_reco_powerline"
 
 # Train parameters
 env_name_train = '_'.join([ENV_NAME, "train"])
-save_path = "./saved_model/safe_max_rho/"
+save_path = "./saved_model/lr/"
 name = '_'.join(["CustomGymEnv", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
 gymenv_class = CustomGymEnv
 
@@ -80,7 +80,7 @@ train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute
                                   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                   ]
 train_args["act_attr_to_keep"] = ["set_storage"]
-train_args["iterations"] = 1_000_000
+train_args["iterations"] = 700_000
 train_args["learning_rate"] = 1e-4
 train_args["net_arch"] = [300, 300, 300]
 train_args["gamma"] = 0.999
@@ -92,7 +92,6 @@ train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 100_000
 
 train_args["n_steps"] = 16
 train_args["batch_size"] = 16
-
 
 # %%
 p = Parameters()
@@ -108,6 +107,6 @@ if filter_chronics is not None:
   env_train.chronics_handler.real_data.set_filter(filter_chronics)
   env_train.chronics_handler.real_data.reset()
 
-values_to_test = np.array([{"safe_max_rho": 0.5}, {"safe_max_rho": 0.7}, {"safe_max_rho": 0.9}])
-var_to_test = "gymenv_kwargs"
+values_to_test = np.array([1e-5, 3e-5, 1e-4])
+var_to_test = "learning_rate"
 agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_to_test)
