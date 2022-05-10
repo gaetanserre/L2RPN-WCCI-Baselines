@@ -6,8 +6,6 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of L2RPN Baselines, L2RPN Baselines a repository to host baselines for l2rpn competitions.
 
-import pdb
-from tabnanny import verbose
 import warnings
 import copy
 import os
@@ -49,12 +47,15 @@ def train(env,
           save_every_xxx_steps=None,
           model_policy=MlpPolicy,
           obs_attr_to_keep=copy.deepcopy(default_obs_attr_to_keep),
+          obs_space_kwargs=None,
           act_attr_to_keep=copy.deepcopy(default_act_attr_to_keep),
+          act_space_kwargs=None,
           policy_kwargs=None,
           normalize_obs=False,
           normalize_act=False,
           gymenv_class=GymEnv,
           gymenv_kwargs=None,
+          verbose=True,
           seed=None,  # TODO
           eval_env=None,  # TODO
           **kwargs):
@@ -74,7 +75,7 @@ def train(env,
     Parameters
     ----------
     env: :class:`grid2op.Environment`
-        Then environment on which you need to train your agent.
+        The environment on which you need to train your agent.
 
     name: ``str```
         The name of your agent.
@@ -113,12 +114,18 @@ def train(env,
         as the "attr_to_keep" value of the
         BoxObservation space (see
         https://grid2op.readthedocs.io/en/latest/gym.html#grid2op.gym_compat.BoxGymObsSpace)
+        
+    obs_space_kwargs:
+        Extra kwargs to build the BoxGymObsSpace (**NOT** saved then NOT restored)
 
     act_attr_to_keep: list of string
         Grid2op attribute to use to build the BoxGymActSpace. It is passed
         as the "attr_to_keep" value of the
         BoxAction space (see
         https://grid2op.readthedocs.io/en/latest/gym.html#grid2op.gym_compat.BoxGymActSpace)
+        
+    act_space_kwargs:
+        Extra kwargs to build the BoxGymActSpace (**NOT** saved then NOT restored)
 
     verbose: ``bool``
         If you want something to be printed on the terminal (a better logging strategy will be put at some point)
@@ -135,7 +142,7 @@ def train(env,
         The class to use as a gym environment. By default `GymEnv` (from module grid2op.gym_compat)
     
     gymenv_kwargs: ``dict``
-        Extra key words arguments to build the gym environment.
+        Extra key words arguments to build the gym environment., **NOT** saved / restored by this class
         
     policy_kwargs: ``dict``
         extra parameters passed to the PPO "policy_kwargs" key word arguments
@@ -210,11 +217,17 @@ def train(env,
         gymenv_kwargs = {}
     env_gym = gymenv_class(env, **gymenv_kwargs)
     env_gym.observation_space.close()
+    if obs_space_kwargs is None:
+        obs_space_kwargs = {}
     env_gym.observation_space = BoxGymObsSpace(env.observation_space,
-                                               attr_to_keep=obs_attr_to_keep)
+                                               attr_to_keep=obs_attr_to_keep,
+                                               **obs_space_kwargs)
     env_gym.action_space.close()
+    if act_space_kwargs is None:
+        act_space_kwargs = {}
     env_gym.action_space = BoxGymActSpace(env.action_space,
-                                          attr_to_keep=act_attr_to_keep)
+                                          attr_to_keep=act_attr_to_keep,
+                                          **act_space_kwargs)
 
     if normalize_act:
         if save_path is not None:
@@ -222,6 +235,11 @@ def train(env,
                       mode="w") as f:
                 f.write("I have encoded the action space !\n DO NOT MODIFY !")
         for attr_nm in act_attr_to_keep:
+            if (("multiply" in act_space_kwargs and attr_nm in act_space_kwargs["multiply"]) or 
+                ("add" in act_space_kwargs and attr_nm in act_space_kwargs["add"]) 
+               ):
+                # attribute is scaled elsewhere
+                continue
             env_gym.action_space.normalize_attr(attr_nm)
 
     if normalize_obs:
@@ -230,6 +248,11 @@ def train(env,
                       mode="w") as f:
                 f.write("I have encoded the observation space !\n DO NOT MODIFY !")
         for attr_nm in obs_attr_to_keep:
+            if (("divide" in obs_space_kwargs and attr_nm in obs_space_kwargs["divide"]) or 
+                ("subtract" in obs_space_kwargs and attr_nm in obs_space_kwargs["subtract"]) 
+               ):
+                # attribute is scaled elsewhere
+                continue
             env_gym.observation_space.normalize_attr(attr_nm)
     
     # Save a checkpoint every "save_every_xxx_steps" steps
@@ -281,7 +304,6 @@ def train(env,
     # train it
     agent.nn_model.learn(total_timesteps=iterations,
                          callback=checkpoint_callback,
-                        #  log_interval=10,
                          # eval_env=eval_env  # TODO
                          )
 

@@ -18,15 +18,17 @@ from grid2op.utils import ScoreL2RPN2020, ScoreICAPS2021, EpisodeStatistics
 from lightsim2grid import LightSimBackend
 import numpy as np
 
-is_windows_or_darwin = sys.platform.startswith("win32") or sys.platform.startswith("darwin")
+is_windows = sys.platform.startswith("win32")
 
+env_name = "l2rpn_icaps_2021_small"
 env_name = "l2rpn_wcci_2022_dev"
+env_name = "wcci_2022_dev"
 SCOREUSED = ScoreL2RPN2020  # ScoreICAPS2021
 
 name_stats = "_reco_powerline"
-nb_process_stats = 4 if not is_windows_or_darwin else 1
+nb_process_stats = 4 if not is_windows else 1
 verbose = 1
-deep_copy = sys.platform.startswith("win32")  # force the deep copy on windows (due to permission issue in symlink in windows)
+deep_copy = is_windows  # force the deep copy on windows (due to permission issue in symlink in windows)
 
 
 def _aux_get_env(env_name, dn=True, name_stat=None):
@@ -114,20 +116,40 @@ if __name__ == "__main__":
         nb_scenario = len(env_tmp.chronics_handler.subpaths)
         print(f"{nm_}: {nb_scenario}")
         my_score = SCOREUSED(env_tmp,
-                            nb_scenario=nb_scenario,
-                            env_seeds=np.random.randint(low=0,
-                                                        high=max_int,
-                                                        size=nb_scenario,
-                                                        dtype=dt_int),
-                            agent_seeds=[0 for _ in range(nb_scenario)],
-                            verbose=verbose,
-                            nb_process_stats=nb_process_stats,
-                            )
+                             nb_scenario=nb_scenario,
+                             env_seeds=np.random.randint(low=0,
+                                                         high=max_int,
+                                                         size=nb_scenario,
+                                                         dtype=dt_int),
+                             agent_seeds=[0 for _ in range(nb_scenario)],
+                             verbose=verbose,
+                             nb_process_stats=nb_process_stats,
+                             )
 
         # compute statistics for reco powerline
         seeds = get_env_seed(nm_)
         reco_powerline_agent = RecoPowerlineAgent(env_tmp.action_space)
         stats_reco = EpisodeStatistics(env_tmp, name_stats=name_stats)
         stats_reco.compute(nb_scenario=nb_scenario,
-                          agent=reco_powerline_agent,
-                          env_seeds=seeds) 
+                           agent=reco_powerline_agent,
+                           env_seeds=seeds)
+        
+        if nm_ == nm_val:
+            # save the normalization parameters from the validation set
+            dict_ = {"subtract": {}, 'divide': {}}
+            for attr_nm in ["gen_p", "load_p", "p_or", "rho"]:
+                avg_ = stats_reco.get(attr_nm)[0].mean(axis=0)
+                std_ = stats_reco.get(attr_nm)[0].std(axis=0)
+                dict_["subtract"][attr_nm] = [float(el) for el in avg_]
+                dict_["divide"][attr_nm] = [max(float(el), 1.0) for el in std_]
+            
+            with open("preprocess_obs.json", "w", encoding="utf-8") as f:
+                json.dump(obj=dict_, fp=f)
+                
+            act_space_kwargs = {"add": {"redispatch": [0. for gen_id in range(env.n_gen) if env.gen_redispatchable[gen_id]],
+                                        "set_storage": [0. for _ in range(env.n_storage)]},
+                                'multiply': {"redispatch": [1. / (max(float(el), 1.0)) for gen_id, el in enumerate(env.gen_max_ramp_up) if env.gen_redispatchable[gen_id]],
+                                             "set_storage": [1. / (max(float(el), 1.0)) for el in env.storage_max_p_prod]}
+                               }
+            with open("preprocess_act.json", "w", encoding="utf-8") as f:
+                json.dump(obj=act_space_kwargs, fp=f)

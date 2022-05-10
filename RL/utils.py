@@ -65,6 +65,26 @@ def generate_statistics(env_list, SCOREUSED, nb_process_stats, name_stats, verbo
       stats_reco.compute(nb_scenario=nb_scenario,
                         agent=reco_powerline_agent,
                         env_seeds=seeds)
+      
+      if "_val" in nm_:
+        # save the normalization parameters from the validation set
+        dict_ = {"subtract": {}, 'divide': {}}
+        for attr_nm in ["gen_p", "load_p", "p_or", "rho"]:
+          avg_ = stats_reco.get(attr_nm)[0].mean(axis=0)
+          std_ = stats_reco.get(attr_nm)[0].std(axis=0)
+          dict_["subtract"][attr_nm] = [float(el) for el in avg_]
+          dict_["divide"][attr_nm] = [max(float(el), 1.0) for el in std_]
+
+        with open("./preprocess_obs.json", "w", encoding="utf-8") as f:
+          json.dump(obj=dict_, fp=f)
+
+        act_space_kwargs = {"add": {"redispatch": [0. for gen_id in range(env_tmp.n_gen) if env_tmp.gen_redispatchable[gen_id]],
+                                    "set_storage": [0. for _ in range(env_tmp.n_storage)]},
+                            'multiply': {"redispatch": [1. / (max(float(el), 1.0)) for gen_id, el in enumerate(env_tmp.gen_max_ramp_up) if env_tmp.gen_redispatchable[gen_id]],
+                                          "set_storage": [1. / (max(float(el), 1.0)) for el in env_tmp.storage_max_p_prod]}
+                            }
+        with open("./preprocess_act.json", "w", encoding="utf-8") as f:
+          json.dump(obj=act_space_kwargs, fp=f)
 
 
 def train_agent(env, train_args:dict, max_iter:int = None):
@@ -106,11 +126,18 @@ def train_agent(env, train_args:dict, max_iter:int = None):
   dict_to_json["gymenv_class"] = dict_to_json["gymenv_class"].__name__
   dict_to_json["learning_rate"] = dict_to_json["learning_rate"] if isinstance(dict_to_json["learning_rate"], float) else dict_to_json["learning_rate"].__name__
   dict_to_json["device"] = str(dict_to_json["device"])
+  dict_to_json["reward"] = str(type(env.get_reward_instance()))
   os.makedirs(os.path.join(train_args["save_path"], train_args["name"]), exist_ok=True)
   with open(full_path, 'x') as fp:
     json.dump(dict_to_json, fp, indent=4)
 
   print("environment loaded !")
+
+  with open("./preprocess_obs.json", "r", encoding="utf-8") as f:
+    train_args["obs_space_kwargs"] = json.load(f)
+  with open("./preprocess_act.json", "r", encoding="utf-8") as f:
+    train_args["act_space_kwargs"] = json.load(f)
+
   return train(env, **train_args)
 
 
@@ -285,20 +312,28 @@ class CustomReward2(BaseReward):
         obs = env.get_obs()
         score_redisp_state = 0.
         # score_redisp_state = np.sum(np.abs(obs.target_dispatch) * self._1_max_redisp)
-        score_redisp_action = np.sum(np.abs(action.redispatch) * self._1_max_redisp_act) 
-        score_redisp = 0.5 *(score_redisp_state + score_redisp_action)
-        score_redisp = 0.5 *(score_redisp_state + score_redisp_action)
+        # score_redisp_action = np.sum(np.abs(action.redispatch) * self._1_max_redisp_act) 
+        # score_redisp = 0.5 *(score_redisp_state + score_redisp_action)
         
         # penalize the curtailment
         # score_curtail_state = 0.
-        score_curtail_state = np.sum(obs.curtailment_mw * self._1_max_redisp)
-        curt_act = action.curtail
-        score_curtail_action = np.sum(curt_act[curt_act != -1.0]) / self._nb_renew 
-        score_curtail = 0.5 * (score_curtail_state + score_curtail_action)
+        # score_curtail_state = np.sum(obs.curtailment_mw * self._1_max_redisp)
+        # score_curtail_state = np.sum(1-obs.curtailment_limit) / self._nb_renew 
+        score_curtail_state = np.sum(np.square(1-obs.curtailment_limit)) / self._nb_renew
+        # curt_act = action.curtail
+        # score_curtail_action = np.sum(curt_act[curt_act != -1.0]) / self._nb_renew 
+        # score_curtail = 0.5 * (score_curtail_state + score_curtail_action)
         
         # rate the actions
-        score_action = 0.5 * (np.sqrt(score_redisp) + np.sqrt(score_curtail))
-        
+        # score_action = 0.5 * (np.sqrt(score_redisp) + np.sqrt(score_curtail))
+
+        # penalize batteries far from the middle charge
+        distance_to_middle_charge = np.sum(np.abs(obs.storage_charge - (obs.storage_Emin + obs.storage_Emax)/2))
+        distance_storage_max = np.sum((obs.storage_Emax - obs.storage_Emin)/2)
+        score_storage_state = distance_to_middle_charge/distance_storage_max
+        score_storage_action = np.sum(np.abs(action.set_storage)) / np.sum(np.maximum(obs.storage_max_p_absorb, obs.storage_max_p_prod))
+        score_storage = 0.5 * (score_storage_action + score_storage_state)
+
         # score the "state" of the grid
         # tmp_state = np.minimum(np.maximum(obs.rho, self._min_rho), self._max_rho)
         # tmp_state -= self._min_rho
@@ -314,5 +349,5 @@ class CustomReward2(BaseReward):
         
         # score too much redisp
         # res = score_goal * (1.0 - 0.5 * (score_action + score_state)
-        res = score_goal * (1.0 - score_curtail_state)
+        res = score_goal * (1.0 - 0.5 * (score_curtail_state + score_storage))
         return res
