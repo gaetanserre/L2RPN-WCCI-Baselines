@@ -14,17 +14,20 @@
 
 import os
 import re
+import json
 import numpy as np
 from grid2op.Reward import BaseReward
-
-import sys
-sys.path.insert(0, "../../.")
-
+from grid2op.Action import PlayableAction
 from l2rpn_baselines.utils import GymEnvWithReco, GymEnvWithRecoWithDN
 
+env_name = "l2rpn_icaps_2021_small_train"
 env_name = "l2rpn_wcci_2022_dev_train"
+env_name = "wcci_2022_dev_2"
+env_name = "wcci_2022_dev_train"
+# env_name = "l2rpn_case14_sandbox"
 save_path = "./saved_model"
-name = "expe_GymEnvWithRecoWithDN_2022_test4"
+name = "test_normalize_features"
+name = "test_1"
 gymenv_class = GymEnvWithRecoWithDN  # uses the heuristic to do nothing is the grid is not at risk and to reconnect powerline automatically
 max_iter = 7 * 24 * 12  # None to deactivate it
 safe_max_rho = 0.9  # the grid is said "safe" if the rho is lower than this value, it is a really important parameter to tune !
@@ -32,11 +35,12 @@ safe_max_rho = 0.9  # the grid is said "safe" if the rho is lower than this valu
 
 # customize the reward function (optional)
 class CustomReward(BaseReward):
-    def __init__(self):
+    def __init__(self, logger=None):
         """
         Initializes :attr:`BaseReward.reward_min` and :attr:`BaseReward.reward_max`
 
         """
+        BaseReward.__init__(self, logger=logger)
         self.reward_min = 0.
         self.reward_max = 1.
         self._min_rho = 0.90
@@ -125,25 +129,40 @@ if __name__ == "__main__":
                         # curtailment part of the observation
                         "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                         ]
+    TODO = ...
     # same here you can change it as you please
     act_attr_to_keep = ["redispatch", "curtail", "set_storage"]
-    
     # parameters for the learning
-    nb_iter = 100
+    nb_iter = 300_000
     learning_rate = 3e-4
     net_arch = [200, 200, 200, 200]
     gamma = 0.999
     
     env = grid2op.make(env_name,
+                       action_class=PlayableAction,
                        reward_class=CustomReward,
                        backend=LightSimBackend(),
                        chronics_class=MultifolderWithCache)
+    
+    with open("preprocess_obs.json", "r", encoding="utf-8") as f:
+        obs_space_kwargs = json.load(f)
+    with open("preprocess_act.json", "r", encoding="utf-8") as f:
+        act_space_kwargs = json.load(f)
+    
+    param = env.parameters
+    param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
+    env.change_parameters(param)
+    
     if max_iter is not None:
         env.set_max_iter(max_iter)  # one week
     obs = env.reset()
     # env.chronics_handler.real_data.set_filter(lambda x: re.match(r".*february_000$", x) is not None)
+    # env.chronics_handler.real_data.set_filter(lambda x: re.match(r".*february_000$", x) is not None)
     # env.chronics_handler.real_data.set_filter(lambda x: re.match(r".*00$", x) is not None)
-    env.chronics_handler.real_data.set_filter(lambda x: True)
+    # env.chronics_handler.real_data.set_filter(lambda x: True)
+    # env.chronics_handler.real_data.set_filter(lambda x: re.match(r".*500$", x) is not None)
+    # env.chronics_handler.real_data.set_filter(lambda x: re.match(r".*2050-08-01_.*$", x) is not None)
+    env.chronics_handler.real_data.set_filter(lambda x: re.match(r".*2050-02-.*$", x) is not None)
     env.chronics_handler.real_data.reset()
     # see https://grid2op.readthedocs.io/en/latest/environment.html#optimize-the-data-pipeline
     # for more information !
@@ -155,7 +174,9 @@ if __name__ == "__main__":
             logs_dir="./logs",
             save_path=save_path, 
             obs_attr_to_keep=obs_attr_to_keep,
+            obs_space_kwargs=obs_space_kwargs,
             act_attr_to_keep=act_attr_to_keep,
+            act_space_kwargs=act_space_kwargs,
             normalize_act=True,
             normalize_obs=True,
             name=name,
