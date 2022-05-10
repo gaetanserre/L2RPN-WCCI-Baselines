@@ -109,6 +109,6 @@ if filter_chronics is not None:
   env_train.chronics_handler.real_data.set_filter(filter_chronics)
   env_train.chronics_handler.real_data.reset()
 
-values_to_test = np.array([{"learning_rate": 1e-5}, {"learning_rate": 3e-5}, {"learning_rate": 1e-4}])
-var_to_test = "gymenv_kwargs"
+values_to_test = np.array([1e-5, 3e-5, 1e-4])
+var_to_test = "learning_rate"
 agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_to_test)
