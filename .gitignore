@@ -8,3 +8,6 @@ RL/examples/__init__.py
 test.py
 RL/logs/
 study_rl_agent
+RL/studies/output_agents_no_overflow/DoNothingAgent
+script
+local_logs/

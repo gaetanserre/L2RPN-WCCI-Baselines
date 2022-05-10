@@ -6,7 +6,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This file is part of L2RPN Baselines, L2RPN Baselines a repository to host baselines for l2rpn competitions.
 
-from tabnanny import verbose
+import json
 import numpy as np
 
 import grid2op
@@ -19,11 +19,13 @@ from l2rpn_baselines.PPO_SB3 import evaluate
 from .A_prep_env import _aux_get_env, get_env_seed, name_stats
 from .B_train_agent import gymenv_class, name, safe_max_rho
 
+env_name = "l2rpn_icaps_2021_small_val"
 env_name = "l2rpn_wcci_2022_dev_val"
+env_name = "wcci_2022_dev_val"
 SCOREUSED = ScoreL2RPN2020  # ScoreICAPS2021
 
 agent_name = name
-nb_scenario = 2
+nb_scenario = 10
 nb_process_stats = 1
 load_path = "./saved_model"
 iter_num = None  # put None for the latest version
@@ -32,18 +34,22 @@ verbose = True
 
 def load_agent(env, load_path, name,
                gymenv_class=gymenv_class,
-               gymenv_kwargs={"safe_max_rho": safe_max_rho}):
+               gymenv_kwargs={"safe_max_rho": safe_max_rho},
+               obs_space_kwargs=None,
+               act_space_kwargs=None):
     trained_agent, _ = evaluate(env,
                                 nb_episode=0,
                                 load_path=load_path,
                                 name=name,
                                 gymenv_class=gymenv_class,
                                 iter_num=iter_num,
-                                gymenv_kwargs=gymenv_kwargs)
+                                gymenv_kwargs=gymenv_kwargs,
+                                obs_space_kwargs=obs_space_kwargs,
+                                act_space_kwargs=act_space_kwargs)
     return trained_agent
 
 
-def get_ts_survived_dn(env_name, nb_scenario):
+def get_ts_survived_dn(env_name):
     dict_ = _aux_get_env(env_name, dn=True)
     res = []
     for kk in range(nb_scenario):
@@ -53,7 +59,7 @@ def get_ts_survived_dn(env_name, nb_scenario):
     res -= 1  # the first observation (after reset) is counted as a step in the runner
     return res
 
-def get_ts_survived_reco(env_name, nb_scenario):
+def get_ts_survived_reco(env_name):
     dict_ = _aux_get_env(env_name, name_stat=name_stats)
     res = []
     for kk in range(nb_scenario):
@@ -81,7 +87,17 @@ if __name__ == "__main__":
                          nb_process_stats=nb_process_stats,
                          )
 
-    my_agent = load_agent(env_val, load_path=load_path, name=agent_name, gymenv_class=gymenv_class)
+    with open("preprocess_obs.json", "r", encoding="utf-8") as f:
+        obs_space_kwargs = json.load(f)
+    with open("preprocess_act.json", "r", encoding="utf-8") as f:
+        act_space_kwargs = json.load(f)
+        
+    my_agent = load_agent(env_val,
+                          load_path=load_path,
+                          name=agent_name,
+                          gymenv_class=gymenv_class,
+                          obs_space_kwargs=obs_space_kwargs,
+                          act_space_kwargs=act_space_kwargs)
     _, ts_survived, _ = my_score.get(my_agent)
     
     # compare with do nothing

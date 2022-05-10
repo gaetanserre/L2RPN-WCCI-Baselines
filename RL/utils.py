@@ -62,6 +62,27 @@ def generate_statistics(env_list, SCOREUSED, nb_process_stats, name_stats, verbo
       stats_reco.compute(nb_scenario=nb_scenario,
                         agent=reco_powerline_agent,
                         env_seeds=seeds)
+      
+        
+      if "_val" in nm_:
+        # save the normalization parameters from the validation set
+        dict_ = {"subtract": {}, 'divide': {}}
+        for attr_nm in ["gen_p", "load_p", "p_or", "rho"]:
+          avg_ = stats_reco.get(attr_nm)[0].mean(axis=0)
+          std_ = stats_reco.get(attr_nm)[0].std(axis=0)
+          dict_["subtract"][attr_nm] = [float(el) for el in avg_]
+          dict_["divide"][attr_nm] = [max(float(el), 1.0) for el in std_]
+        
+        with open("./preprocess_obs.json", "w", encoding="utf-8") as f:
+          json.dump(obj=dict_, fp=f)
+            
+        act_space_kwargs = {"add": {"redispatch": [0. for gen_id in range(env_tmp.n_gen) if env_tmp.gen_redispatchable[gen_id]],
+                                    "set_storage": [0. for _ in range(env_tmp.n_storage)]},
+                            'multiply': {"redispatch": [1. / (max(float(el), 1.0)) for gen_id, el in enumerate(env_tmp.gen_max_ramp_up) if env_tmp.gen_redispatchable[gen_id]],
+                                          "set_storage": [1. / (max(float(el), 1.0)) for el in env_tmp.storage_max_p_prod]}
+                            }
+        with open("./preprocess_act.json", "w", encoding="utf-8") as f:
+          json.dump(obj=act_space_kwargs, fp=f)
 
 
 def train_agent(env, train_args:dict, max_iter:int = None):
@@ -107,6 +128,12 @@ def train_agent(env, train_args:dict, max_iter:int = None):
     json.dump(dict_to_json, fp, indent=4)
 
   print("environment loaded !")
+
+  with open("./preprocess_obs.json", "r", encoding="utf-8") as f:
+    train_args["obs_space_kwargs"] = json.load(f)
+  with open("./preprocess_act.json", "r", encoding="utf-8") as f:
+    train_args["act_space_kwargs"] = json.load(f)
+
   return train(env, **train_args)
 
 
