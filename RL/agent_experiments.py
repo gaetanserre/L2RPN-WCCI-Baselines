@@ -81,7 +81,7 @@ train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute
                                   # curtailment part of the observation
                                   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                   ]
-train_args["act_attr_to_keep"] = ["set_storage"]
+train_args["act_attr_to_keep"] = ["set_storage", "curtail"]
 train_args["iterations"] = 700_000
 train_args["learning_rate"] = 1e-4
 train_args["net_arch"] = [300, 300, 300]
