@@ -17,7 +17,7 @@ from examples.ppo_stable_baselines.B_train_agent import CustomReward
 
 # %%
 
-torch.cuda.set_device(0)
+# torch.cuda.set_device(0)
 
 # %%
 ENV_NAME = "l2rpn_wcci_2022_dev"
@@ -55,16 +55,16 @@ def filter_chronics(x):
   p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
   return re.match(p, x) is not None
 
-filter_chronics = None
+# filter_chronics = None
 
 # %%
 # Generate statistics
 
 try:
-  env = grid2op.make(ENV_NAME)
-  nm_train, nm_val, nm_test = split_train_val_test_sets(env, deep_copy)
-  generate_statistics([nm_val, nm_test], SCOREUSED, nb_process_stats, name_stats, verbose)
-  # generate_statistics([ENV_NAME], SCOREUSED, nb_process_stats, name_stats, verbose, filter_fun=filter_chronics)
+  # env = grid2op.make(ENV_NAME)
+  # nm_train, nm_val, nm_test = split_train_val_test_sets(env, deep_copy)
+  # generate_statistics([nm_val, nm_test], SCOREUSED, nb_process_stats, name_stats, verbose)
+  generate_statistics([ENV_NAME], SCOREUSED, nb_process_stats, name_stats, verbose, filter_fun=filter_chronics)
 except Exception as e:
   if str(e).startswith("Impossible to create"):
     pass
@@ -84,7 +84,7 @@ train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute
                                   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                   ]
 train_args["act_attr_to_keep"] = ["curtail", "set_storage"]
-train_args["iterations"] = 400_000
+train_args["iterations"] = 700_000
 train_args["learning_rate"] =  1e-4 # 3e-4
 train_args["net_arch"] = [300, 300, 300] # [200, 200, 200, 200]
 train_args["gamma"] = 0.999
@@ -109,12 +109,14 @@ p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True # It causes errors during t
 #                    param=p)
 
 env_train = grid2op.make(ENV_NAME,
-                   reward_class=CustomReward2,
+                   reward_class=CustomReward,
                    backend=LightSimBackend(),
                    chronics_class=MultifolderWithCache,
                    param=p)
-env_train.chronics_handler.real_data.set_filter(filter_chronics)
-env_train.chronics_handler.real_data.reset()
+
+if filter_chronics is not None:
+  env_train.chronics_handler.real_data.set_filter(filter_chronics)
+  env_train.chronics_handler.real_data.reset()
 
 # def lr_fun(x_left):
 #     x = 1 - x_left
@@ -125,23 +127,24 @@ env_train.chronics_handler.real_data.reset()
 #     return lr
 
 # values_to_test = np.array([3e-6, lr_fun])
-# var_to_test = "learning_rate"
+values_to_test = np.array([1e-5, 3e-4, 1e-4])
+var_to_test = "learning_rate"
 
-values_to_test = [train_args["gymenv_kwargs"]]
-var_to_test = "gymenv_kwargs"
-# agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_to_test)
+# values_to_test = [train_args["gymenv_kwargs"]]
+# var_to_test = "gymenv_kwargs"
+agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_to_test)
 
 # %%
-# env_name_val = '_'.join([ENV_NAME, "val"])
-# for i, (agent_name, _) in enumerate(agents):
-#   results = eval_agent(ENV_NAME, #env_name_val,
-#             2,
-#             agent_name,
-#             save_path,
-#             SCOREUSED,
-#             gymenv_class,
-#             verbose,
-#             gymenv_kwargs=train_args["gymenv_kwargs"] if var_to_test!="gymenv_kwargs" else values_to_test[i],
-#             param=p,
-#             filter_fun=filter_chronics)
-#   print(results)
+env_name_val = '_'.join([ENV_NAME, "val"])
+for i, (agent_name, _) in enumerate(agents):
+  results = eval_agent(ENV_NAME, #env_name_val,
+            2,
+            agent_name,
+            save_path,
+            SCOREUSED,
+            gymenv_class,
+            verbose,
+            gymenv_kwargs=train_args["gymenv_kwargs"] if var_to_test!="gymenv_kwargs" else values_to_test[i],
+            param=p,
+            filter_fun=filter_chronics)
+  print(results)
