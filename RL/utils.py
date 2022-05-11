@@ -130,11 +130,14 @@ def train_agent(env, train_args:dict, max_iter:int = None):
   print("environment loaded !")
 
   with open("./preprocess_obs.json", "r", encoding="utf-8") as f:
-    train_args["obs_space_kwargs"] = json.load(f)
+    obs_space_kwargs = json.load(f)
   with open("./preprocess_act.json", "r", encoding="utf-8") as f:
-    train_args["act_space_kwargs"] = json.load(f)
+    act_space_kwargs = json.load(f)
 
-  return train(env, **train_args)
+  return train(env,
+               obs_space_kwargs=obs_space_kwargs,
+               act_space_kwargs=act_space_kwargs,
+               **train_args)
 
 
 def iter_hyperparameters(env,
@@ -242,7 +245,18 @@ def eval_agent(env_name: str,
                         verbose=verbose,
                         nb_process_stats=nb_process_stats)
 
-  my_agent = load_agent(env_val, load_path=load_path, name=agent_name, gymenv_class=gymenv_class, gymenv_kwargs=gymenv_kwargs)
+  with open("./preprocess_obs.json", "r", encoding="utf-8") as f:
+    obs_space_kwargs = json.load(f)
+  with open("./preprocess_act.json", "r", encoding="utf-8") as f:
+    act_space_kwargs = json.load(f)
+
+  my_agent = load_agent(env_val,
+                        load_path=load_path,
+                        name=agent_name,
+                        gymenv_class=gymenv_class,
+                        gymenv_kwargs=gymenv_kwargs,
+                        obs_space_kwargs=obs_space_kwargs,
+                        act_space_kwargs=act_space_kwargs)
   _, ts_survived, _ = my_score.get(my_agent)
   
   if verbose:
