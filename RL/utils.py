@@ -249,7 +249,18 @@ def eval_agent(env_name: str,
                         verbose=verbose,
                         nb_process_stats=nb_process_stats)
 
-  my_agent = load_agent(env_val, load_path=load_path, name=agent_name, gymenv_class=gymenv_class, gymenv_kwargs=gymenv_kwargs)
+  with open("./preprocess_obs.json", "r", encoding="utf-8") as f:
+    obs_space_kwargs = json.load(f)
+  with open("./preprocess_act.json", "r", encoding="utf-8") as f:
+    act_space_kwargs = json.load(f)
+
+  my_agent = load_agent(env_val,
+                        load_path=load_path,
+                        name=agent_name,
+                        gymenv_class=gymenv_class,
+                        gymenv_kwargs=gymenv_kwargs,
+                        obs_space_kwargs=obs_space_kwargs,
+                        act_space_kwargs=act_space_kwargs)
   _, ts_survived, _ = my_score.get(my_agent)
   
   # compare with do nothing
@@ -270,11 +281,12 @@ def eval_agent(env_name: str,
 
 
 class CustomReward2(BaseReward):
-    def __init__(self):
+    def __init__(self, logger=None):
         """
         Initializes :attr:`BaseReward.reward_min` and :attr:`BaseReward.reward_max`
 
         """
+        BaseReward.__init__(self, logger=logger)
         self.reward_min = 0
         self.reward_max = 1.
         self._min_rho = 0.90

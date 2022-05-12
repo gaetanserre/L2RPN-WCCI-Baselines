@@ -10,4 +10,4 @@ test.py
 RL/logs/
 RL/nohup.out_old/
 RL/model_results
-RL/nohup.out
+*.out

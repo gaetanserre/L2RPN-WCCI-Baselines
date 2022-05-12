@@ -17,7 +17,7 @@ from examples.ppo_stable_baselines.B_train_agent import CustomReward
 
 # %%
 
-# torch.cuda.set_device(0)
+torch.cuda.set_device(3)
 
 # %%
 ENV_NAME = "l2rpn_wcci_2022_dev"
@@ -50,8 +50,13 @@ train_args["gymenv_class"] = gymenv_class
 train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Chronix to use
+# def filter_chronics(x):
+#   list_chronics = ['2050-01-10_0', '2050-08-01_7'] # Names of chronics to keep
+#   p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
+#   return re.match(p, x) is not None
+
 def filter_chronics(x):
-  list_chronics = ['2050-01-10_0', '2050-08-01_7'] # Names of chronics to keep
+  list_chronics = ['2050-01-03_31', '2050-02-21_31', '2050-03-07_31', '2050-04-18_31'] # Names of chronics to keep
   p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
   return re.match(p, x) is not None
 
@@ -109,7 +114,7 @@ p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True # It causes errors during t
 #                    param=p)
 
 env_train = grid2op.make(ENV_NAME,
-                   reward_class=CustomReward,
+                   reward_class=CustomReward2,
                    backend=LightSimBackend(),
                    chronics_class=MultifolderWithCache,
                    param=p)
@@ -127,7 +132,7 @@ if filter_chronics is not None:
 #     return lr
 
 # values_to_test = np.array([3e-6, lr_fun])
-values_to_test = np.array([1e-5, 3e-4, 1e-4])
+values_to_test = np.array([1e-4, 3e-5, 1e-5, 3e-6, 1e-6])
 var_to_test = "learning_rate"
 
 # values_to_test = [train_args["gymenv_kwargs"]]
@@ -138,7 +143,7 @@ agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_t
 env_name_val = '_'.join([ENV_NAME, "val"])
 for i, (agent_name, _) in enumerate(agents):
   results = eval_agent(ENV_NAME, #env_name_val,
-            2,
+            4,
             agent_name,
             save_path,
             SCOREUSED,
@@ -148,3 +153,5 @@ for i, (agent_name, _) in enumerate(agents):
             param=p,
             filter_fun=filter_chronics)
   print(results)
+
+# %%
