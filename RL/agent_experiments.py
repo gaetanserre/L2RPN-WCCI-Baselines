@@ -49,7 +49,10 @@ train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cp
 # Generate statistics
 
 def filter_chronics(x):
-  list_chronics = ['2050-01-10_0', '2050-08-01_7'] # Names of chronics to keep
+  list_chronics = ["2050-01-03_31",
+                   "2050-02-21_31",
+                   "2050-03-07_31",
+                   "2050-04-18_31"] # Names of chronics to keep
   p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
   return re.match(p, x) is not None
 
