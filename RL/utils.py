@@ -294,3 +294,36 @@ def create_bar_plot(ts_survived, dn_ts_survived, reco_ts_survived, path=None):
   if path is not None:
     plt.savefig(path)
   plt.show()
+
+def create_box_plot(dict_ts_survived, dn_ts_survived, reco_ts_survived, path=None):
+  d = {"Scenarios": [],
+       "Agents": [],
+       "Survived steps": []}
+
+  for i, v in enumerate(dn_ts_survived):
+    d["Scenarios"].append(i)
+    d["Agents"].append("DN")
+    d["Survived steps"].append(v)
+  
+  for i, v in enumerate(reco_ts_survived):
+    d["Scenarios"].append(i)
+    d["Agents"].append("Reco")
+    d["Survived steps"].append(v)
+
+  for key, scenarios in dict_ts_survived.items():
+    for i, values in enumerate(scenarios):
+      for v in values:
+        d["Scenarios"].append(i)
+        d["Agents"].append(key)
+        d["Survived steps"].append(v)
+
+  df = pd.DataFrame(d)
+
+  fig, ax1 = plt.subplots(figsize=(10, 5))
+  sns.boxplot(x="Scenarios", y="Survived steps", hue="Agents", data=df, palette=("magma"), ax=ax1)
+  ax1.axhline(2017, color="black", label="Maximum time steps")
+  plt.legend()
+  sns.despine(fig)
+  if path is not None:
+    plt.savefig(path)
+  plt.show()
