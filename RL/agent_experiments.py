@@ -17,7 +17,7 @@ from examples.ppo_stable_baselines.B_train_agent import CustomReward
 
 # %%
 
-torch.cuda.set_device(3)
+# torch.cuda.set_device(0)
 
 # %%
 ENV_NAME = "l2rpn_wcci_2022_dev"
@@ -89,7 +89,7 @@ train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute
                                   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                   ]
 train_args["act_attr_to_keep"] = ["curtail", "set_storage"]
-train_args["iterations"] = 700_000
+train_args["iterations"] = 10_000_000
 train_args["learning_rate"] =  1e-4 # 3e-4
 train_args["net_arch"] = [300, 300, 300] # [200, 200, 200, 200]
 train_args["gamma"] = 0.999
@@ -114,7 +114,7 @@ p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True # It causes errors during t
 #                    param=p)
 
 env_train = grid2op.make(ENV_NAME,
-                   reward_class=CustomReward2,
+                   reward_class=CustomReward,
                    backend=LightSimBackend(),
                    chronics_class=MultifolderWithCache,
                    param=p)
@@ -132,7 +132,7 @@ if filter_chronics is not None:
 #     return lr
 
 # values_to_test = np.array([3e-6, lr_fun])
-values_to_test = np.array([1e-4, 3e-5, 1e-5, 3e-6, 1e-6])
+values_to_test = np.array([1e-4])
 var_to_test = "learning_rate"
 
 # values_to_test = [train_args["gymenv_kwargs"]]
@@ -142,7 +142,7 @@ agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_t
 # %%
 env_name_val = '_'.join([ENV_NAME, "val"])
 for i, (agent_name, _) in enumerate(agents):
-  results = eval_agent(ENV_NAME, #env_name_val,
+    results = eval_agent(ENV_NAME, #env_name_val,
             4,
             agent_name,
             save_path,
@@ -152,6 +152,6 @@ for i, (agent_name, _) in enumerate(agents):
             gymenv_kwargs=train_args["gymenv_kwargs"] if var_to_test!="gymenv_kwargs" else values_to_test[i],
             param=p,
             filter_fun=filter_chronics)
-  print(results)
+    print(results)
 
 # %%

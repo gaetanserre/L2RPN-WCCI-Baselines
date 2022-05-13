@@ -1,4 +1,3 @@
-from inspect import Parameter
 import numpy as np
 import grid2op
 from collections.abc import Iterable
@@ -7,17 +6,15 @@ from grid2op.Agent import RecoPowerlineAgent
 from grid2op.utils import EpisodeStatistics
 from grid2op.dtypes import dt_int
 from lightsim2grid import LightSimBackend
-from grid2op.Chronics import MultifolderWithCache
 import json
 import os
 from grid2op.Parameters import Parameters
 from grid2op.Reward import BaseReward
 
-# import sys
-# sys.path.insert(0, "examples/")
-
-# from ppo_stable_baselines.A_prep_env import get_env_seed
-# from ppo_stable_baselines.C_evaluate_trained_model import get_ts_survived_dn, get_ts_survived_reco, load_agent
+# Visualization
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 from examples.ppo_stable_baselines.A_prep_env import get_env_seed
 from examples.ppo_stable_baselines.C_evaluate_trained_model import get_ts_survived_dn, get_ts_survived_reco, load_agent
@@ -245,6 +242,7 @@ def eval_agent(env_name: str,
   my_score = SCOREUSED(env_val,
                         nb_scenario=nb_scenario,
                         env_seeds=get_env_seed(env_name)[:nb_scenario],
+                        # env_seeds=[0 for _ in range(nb_scenario)],
                         agent_seeds=[0 for _ in range(nb_scenario)],
                         verbose=verbose,
                         nb_process_stats=nb_process_stats)
