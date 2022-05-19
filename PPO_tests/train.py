@@ -3,8 +3,10 @@ from stable_baselines3.common.env_util import make_vec_env
 import torch.nn as nn
 
 archs = [[1], [10], [64, 64], [128, 128], [256, 64]]
-envs = ["Pendulum-v1", "CarRacing-v0", "MountainCarContinuous-v0"]
-names = ["pendulum", "car_racing", "moutaincar_c0"]
+#envs = ["Pendulum-v1", "CarRacing-v0", "MountainCarContinuous-v0"]
+#names = ["pendulum", "car_racing", "moutaincar_c0"]
+envs = ["BipedalWalker-v3"]
+names = ["bipedalwalker"]
 ent_coeffs = [0.0, 0.3]
 
 for arch in archs:
