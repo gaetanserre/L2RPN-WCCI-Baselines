@@ -23,7 +23,7 @@ rho_danger = 0.95
 agent = OptimCVXPY(env.action_space,
                    env,
                    rho_danger=rho_danger,
-                   penalty_redispatching_unsafe=10.,
+                   penalty_redispatching_unsafe=0.99,
                    penalty_storage_unsafe=0.01,
                    penalty_curtailment_unsafe=0.01,
                    )
@@ -41,7 +41,7 @@ for num in range(NUM_CHRONICS):
         act = agent.act(obs)
         if obs.rho.max() >= rho_danger:
           expert_observations.append(prev_obs.to_vect())
-          expert_actions.append(np.concatenate((act.storage_p, act.curtail)))
+          expert_actions.append(act)
         obs, reward, done, info = env.step(act)
         if done:
             break
