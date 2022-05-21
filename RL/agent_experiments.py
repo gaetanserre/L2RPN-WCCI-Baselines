@@ -49,7 +49,10 @@ train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cp
 # Generate statistics
 
 def filter_chronics(x):
-  list_chronics = ['2050-01-10_0', '2050-08-01_7'] # Names of chronics to keep
+  list_chronics = ["2050-01-03_31",
+                   "2050-02-21_31",
+                   "2050-03-07_31",
+                   "2050-04-18_31"] # Names of chronics to keep
   p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
   return re.match(p, x) is not None
 
@@ -79,7 +82,7 @@ train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute
                                   # curtailment part of the observation
                                   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                   ]
-train_args["act_attr_to_keep"] = ["set_storage"]
+train_args["act_attr_to_keep"] = ["set_storage", "curtail"]
 train_args["iterations"] = 700_000
 train_args["learning_rate"] = 1e-4
 train_args["net_arch"] = [300, 300, 300]

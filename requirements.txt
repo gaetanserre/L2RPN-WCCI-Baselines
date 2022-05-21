@@ -1,7 +1,6 @@
 stable-baselines3[extra]
 numba
 lightsim2grid
-grid2op >= 1.7
 pandas
 seaborn
 scikit-learn

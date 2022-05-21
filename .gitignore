@@ -11,3 +11,5 @@ study_rl_agent
 RL/studies/output_agents_no_overflow/DoNothingAgent
 script
 local_logs/
+PPO_tests/exps
+PPO_tests/logs

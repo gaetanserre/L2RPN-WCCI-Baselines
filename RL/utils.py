@@ -245,7 +245,18 @@ def eval_agent(env_name: str,
                         verbose=verbose,
                         nb_process_stats=nb_process_stats)
 
-  my_agent = load_agent(env_val, load_path=load_path, name=agent_name, gymenv_class=gymenv_class, gymenv_kwargs=gymenv_kwargs)
+  with open("./preprocess_obs.json", "r", encoding="utf-8") as f:
+    obs_space_kwargs = json.load(f)
+  with open("./preprocess_act.json", "r", encoding="utf-8") as f:
+    act_space_kwargs = json.load(f)
+
+  my_agent = load_agent(env_val,
+                        load_path=load_path,
+                        name=agent_name,
+                        gymenv_class=gymenv_class,
+                        gymenv_kwargs=gymenv_kwargs,
+                        obs_space_kwargs=obs_space_kwargs,
+                        act_space_kwargs=act_space_kwargs)
   _, ts_survived, _ = my_score.get(my_agent)
   
   if verbose:
@@ -277,6 +288,39 @@ def create_bar_plot(ts_survived, dn_ts_survived, reco_ts_survived, path=None):
   tidy.rename(columns={"Value": "Survived steps", "Variable": "Agents"}, inplace=True)
   fig, ax1 = plt.subplots(figsize=(10, 5))
   sns.barplot(x="Scenarios", y="Survived steps", hue="Agents", data=tidy, palette=("magma"), ax=ax1)
+  ax1.axhline(2017, color="black", label="Maximum time steps")
+  plt.legend()
+  sns.despine(fig)
+  if path is not None:
+    plt.savefig(path)
+  plt.show()
+
+def create_box_plot(dict_ts_survived, dn_ts_survived, reco_ts_survived, path=None):
+  d = {"Scenarios": [],
+       "Agents": [],
+       "Survived steps": []}
+
+  for i, v in enumerate(dn_ts_survived):
+    d["Scenarios"].append(i)
+    d["Agents"].append("DN")
+    d["Survived steps"].append(v)
+  
+  for i, v in enumerate(reco_ts_survived):
+    d["Scenarios"].append(i)
+    d["Agents"].append("Reco")
+    d["Survived steps"].append(v)
+
+  for key, scenarios in dict_ts_survived.items():
+    for i, values in enumerate(scenarios):
+      for v in values:
+        d["Scenarios"].append(i)
+        d["Agents"].append(key)
+        d["Survived steps"].append(v)
+
+  df = pd.DataFrame(d)
+
+  fig, ax1 = plt.subplots(figsize=(10, 5))
+  sns.boxplot(x="Scenarios", y="Survived steps", hue="Agents", data=df, palette=("magma"), ax=ax1)
   ax1.axhline(2017, color="black", label="Maximum time steps")
   plt.legend()
   sns.despine(fig)
