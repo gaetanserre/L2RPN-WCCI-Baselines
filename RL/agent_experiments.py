@@ -17,7 +17,7 @@ from examples.ppo_stable_baselines.B_train_agent import CustomReward
 
 # %%
 
-# torch.cuda.set_device(0)
+torch.cuda.set_device(2)
 
 # %%
 ENV_NAME = "l2rpn_wcci_2022_dev"
@@ -66,10 +66,12 @@ def filter_chronics(x):
 # Generate statistics
 
 try:
-  # env = grid2op.make(ENV_NAME)
-  # nm_train, nm_val, nm_test = split_train_val_test_sets(env, deep_copy)
-  # generate_statistics([nm_val, nm_test], SCOREUSED, nb_process_stats, name_stats, verbose)
-  generate_statistics([ENV_NAME], SCOREUSED, nb_process_stats, name_stats, verbose, filter_fun=filter_chronics)
+  if filter_chronics is None:
+    env = grid2op.make(ENV_NAME)
+    nm_train, nm_val, nm_test = split_train_val_test_sets(env, deep_copy)
+    generate_statistics([nm_val, nm_test], SCOREUSED, nb_process_stats, name_stats, verbose)
+  else:
+    generate_statistics([ENV_NAME], SCOREUSED, nb_process_stats, name_stats, verbose, filter_fun=filter_chronics)
 except Exception as e:
   if str(e).startswith("Impossible to create"):
     pass
@@ -107,14 +109,8 @@ train_args["batch_size"] = 16 # 64
 p = Parameters()
 p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True # It causes errors during training
 
-# env_train = grid2op.make(env_name_train,
-#                    reward_class=CustomReward,
-#                    backend=LightSimBackend(),
-#                    chronics_class=MultifolderWithCache,
-#                    param=p)
-
-env_train = grid2op.make(ENV_NAME,
-                   reward_class=CustomReward,
+env_train = grid2op.make(env_name_train if filter_chronics is None else ENV_NAME,
+                   reward_class=CustomReward2,
                    backend=LightSimBackend(),
                    chronics_class=MultifolderWithCache,
                    param=p)
@@ -132,7 +128,7 @@ if filter_chronics is not None:
 #     return lr
 
 # values_to_test = np.array([3e-6, lr_fun])
-values_to_test = np.array([1e-4])
+values_to_test = np.array([3e-6])
 var_to_test = "learning_rate"
 
 # values_to_test = [train_args["gymenv_kwargs"]]
@@ -140,18 +136,18 @@ var_to_test = "learning_rate"
 agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_to_test)
 
 # %%
-env_name_val = '_'.join([ENV_NAME, "val"])
-for i, (agent_name, _) in enumerate(agents):
-    results = eval_agent(ENV_NAME, #env_name_val,
-            4,
-            agent_name,
-            save_path,
-            SCOREUSED,
-            gymenv_class,
-            verbose,
-            gymenv_kwargs=train_args["gymenv_kwargs"] if var_to_test!="gymenv_kwargs" else values_to_test[i],
-            param=p,
-            filter_fun=filter_chronics)
-    print(results)
+# env_name_val = '_'.join([ENV_NAME, "val"])
+# for i, (agent_name, _) in enumerate(agents):
+#     results = eval_agent(env_name_val, #ENV_NAME
+#             4,
+#             agent_name,
+#             save_path,
+#             SCOREUSED,
+#             gymenv_class,
+#             verbose,
+#             gymenv_kwargs=train_args["gymenv_kwargs"] if var_to_test!="gymenv_kwargs" else values_to_test[i],
+#             param=p,
+#             filter_fun=filter_chronics)
+#     print(results)
 
 # %%

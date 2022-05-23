@@ -201,7 +201,10 @@ def eval_agent(env_name: str,
                nb_process_stats=1,
                gymenv_kwargs={},
                param=Parameters(),
-               filter_fun=None):
+               filter_fun=None,
+               my_agent=None,
+               env_seeds=None,
+               agent_seeds=None):
   """
   This function evaluates a trained agent by comparing it to a DoNothing agent
   and a RecoPowerlineAgent.
@@ -234,16 +237,26 @@ def eval_agent(env_name: str,
   if filter_fun is not None:
     env_val.chronics_handler.real_data.set_filter(filter_fun)
     env_val.chronics_handler.real_data.reset()
-  
-  # retrieve the reference data
-  dn_ts_survived = get_ts_survived_dn(env_name, nb_scenario)
-  reco_ts_survived = get_ts_survived_reco(env_name, nb_scenario)
+
+
+  if env_seeds is None:
+    env_seeds=get_env_seed(env_name)[:nb_scenario]
+      # retrieve the reference data
+    dn_ts_survived = get_ts_survived_dn(env_name, nb_scenario)
+    reco_ts_survived = get_ts_survived_reco(env_name, nb_scenario)
+  else :
+    dn_ts_survived = []
+    reco_ts_survived = []
+    if verbose:
+      print("You changed env_seeds for your agent, but not for dn_agent and reco_agent so you receive empty lists")
+
+  if agent_seeds is None:
+    agent_seeds=[0 for _ in range(nb_scenario)]
 
   my_score = SCOREUSED(env_val,
                         nb_scenario=nb_scenario,
-                        env_seeds=get_env_seed(env_name)[:nb_scenario],
-                        # env_seeds=[0 for _ in range(nb_scenario)],
-                        agent_seeds=[0 for _ in range(nb_scenario)],
+                        env_seeds=env_seeds,
+                        agent_seeds=agent_seeds,
                         verbose=verbose,
                         nb_process_stats=nb_process_stats)
 
@@ -252,28 +265,30 @@ def eval_agent(env_name: str,
   with open("./preprocess_act.json", "r", encoding="utf-8") as f:
     act_space_kwargs = json.load(f)
 
-  my_agent = load_agent(env_val,
-                        load_path=load_path,
-                        name=agent_name,
-                        gymenv_class=gymenv_class,
-                        gymenv_kwargs=gymenv_kwargs,
-                        obs_space_kwargs=obs_space_kwargs,
-                        act_space_kwargs=act_space_kwargs)
+  if my_agent is None:
+    my_agent = load_agent(env_val,
+                          load_path=load_path,
+                          name=agent_name,
+                          gymenv_class=gymenv_class,
+                          gymenv_kwargs=gymenv_kwargs,
+                          obs_space_kwargs=obs_space_kwargs,
+                          act_space_kwargs=act_space_kwargs)
   _, ts_survived, _ = my_score.get(my_agent)
   
-  # compare with do nothing
-  best_than_dn = 0
-  for my_ts, dn_ts in zip(ts_survived, dn_ts_survived):
-      print(f"\t{':-)' if my_ts >= dn_ts else ':-('} I survived {my_ts} steps vs {dn_ts} for do nothing ({my_ts - dn_ts})")
-      best_than_dn += my_ts >= dn_ts
-  print(f"The agent \"{agent_name}\" beats \"do nothing\" baseline in {best_than_dn} out of {len(dn_ts_survived)} episodes")
-  
-  # compare with reco powerline
-  best_than_reco = 0
-  for my_ts, reco_ts in zip(ts_survived, reco_ts_survived):
-      print(f"\t{':-)' if my_ts >= reco_ts else ':-('} I survived {my_ts} steps vs {reco_ts} for reco powerline ({my_ts - reco_ts})")
-      best_than_reco += my_ts >= reco_ts
-  print(f"The agent \"{agent_name}\" beats \"reco powerline\" baseline in {best_than_reco} out of {len(reco_ts_survived)} episodes")
+  if env_seeds is None :
+    # compare with do nothing
+    best_than_dn = 0
+    for my_ts, dn_ts in zip(ts_survived, dn_ts_survived):
+        print(f"\t{':-)' if my_ts >= dn_ts else ':-('} I survived {my_ts} steps vs {dn_ts} for do nothing ({my_ts - dn_ts})")
+        best_than_dn += my_ts >= dn_ts
+    print(f"The agent \"{agent_name}\" beats \"do nothing\" baseline in {best_than_dn} out of {len(dn_ts_survived)} episodes")
+    
+    # compare with reco powerline
+    best_than_reco = 0
+    for my_ts, reco_ts in zip(ts_survived, reco_ts_survived):
+        print(f"\t{':-)' if my_ts >= reco_ts else ':-('} I survived {my_ts} steps vs {reco_ts} for reco powerline ({my_ts - reco_ts})")
+        best_than_reco += my_ts >= reco_ts
+    print(f"The agent \"{agent_name}\" beats \"reco powerline\" baseline in {best_than_reco} out of {len(reco_ts_survived)} episodes")
 
   return ts_survived, dn_ts_survived, reco_ts_survived
 

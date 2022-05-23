@@ -6,8 +6,10 @@ output_agents
 RL/saved_model
 RL/examples/ppo_stable_baselines/__init__.py
 RL/examples/__init__.py
-test.py
+RL/test.py
 RL/logs/
 RL/nohup.out_old/
 RL/model_results
 *.out
+RL/preprocess_act_old.json
+RL/preprocess_obs_old.json
