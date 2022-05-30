@@ -17,7 +17,7 @@ from examples.ppo_stable_baselines.B_train_agent import CustomReward
 
 # %%
 
-torch.cuda.set_device(2)
+# torch.cuda.set_device(0)
 
 # %%
 ENV_NAME = "l2rpn_wcci_2022_dev"
