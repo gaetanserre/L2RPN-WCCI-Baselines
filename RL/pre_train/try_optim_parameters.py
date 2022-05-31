@@ -1,5 +1,6 @@
 import sys
-sys.path.insert(0, "../")
+# sys.path.insert(0, "../")
+sys.path.insert(0, '/home/boguslawskieva/L2RPN-WCCI-Baselines/RL')
 
 import os
 import grid2op
@@ -23,6 +24,8 @@ verbose = False
 p = Parameters()
 p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
 datetime_now=datetime.now().strftime('%Y-%m-%d_%H-%M')
+is_windows_or_darwin = sys.platform.startswith("win32") or sys.platform.startswith("darwin")
+nb_process_stats = 4 if not is_windows_or_darwin else 1
   
 train_args = {}
 train_args["gymenv_kwargs"] = {"safe_max_rho": 0.2}
@@ -59,11 +62,11 @@ parameters_to_test = [{"penalty_redispatching_unsafe":0,
                         "rho_danger":0.97,
                         "margin_th_limit":0.93,
                         "alpha_por_error":0.5},
-                        {"penalty_redispatching_unsafe":1, 
+                        {"penalty_redispatching_unsafe":1, # 1, 10
                         "penalty_storage_unsafe":0.01, 
                         "penalty_curtailment_unsafe":0.01,
-                        "rho_safe":0.95,
-                        "rho_danger":0.97,
+                        "rho_safe":0, # gaetan 0.6
+                        "rho_danger":0.97, # To tune 0.9, 0.97, 0.3
                         "margin_th_limit":0.93,
                         "alpha_por_error":0.5}
                     ]
@@ -84,23 +87,27 @@ print("Start evaluation of agents")
 total_results = np.zeros((len(agents_dict), nb_scenario, 3))
 for i, (agent_name, my_agent) in enumerate(agents_dict.items()):
     print("Evaluation of : ", agent_name)
-    results = eval_agent(ENV_NAME,
-            nb_scenario,
-            agent_name,
-            save_path,
-            SCOREUSED,
-            verbose,
-            gymenv_kwargs=train_args["gymenv_kwargs"],
-            param=p,
-            filter_fun=filter_chronics,
-            my_agent=my_agent
-            )
-    for k in range(3):
-        total_results[i, :, k]=np.array(results[k])
+    try:
+        results = eval_agent(ENV_NAME,
+                nb_scenario,
+                agent_name,
+                save_path,
+                SCOREUSED,
+                verbose,
+                gymenv_kwargs=train_args["gymenv_kwargs"],
+                param=p,
+                filter_fun=filter_chronics,
+                my_agent=my_agent,
+                nb_process_stats = nb_process_stats
+                )
+        for k in range(3):
+            total_results[i, :, k]=np.array(results[k])
 
-    parameters_to_test[i].update({"datetime_now":datetime_now, "agent_name":agent_name, "agent_id":i})
-    with open("dicts_optimizers_params.json", 'a') as fp:
-        json.dump(parameters_to_test[i], fp, indent=4)
+        parameters_to_test[i].update({"datetime_now":datetime_now, "agent_name":agent_name, "agent_id":i})
+        with open("./pre_train/dicts_optimizers_params.json", 'a') as fp:
+            json.dump(parameters_to_test[i], fp, indent=4)
+    except:
+        pass
 
-with open('./pretrain/total_results_{}.npy'.format(datetime_now), 'wb') as f:
+with open('./pre_train/total_results_{}.npy'.format(datetime_now), 'wb') as f:
     np.save(f, total_results)

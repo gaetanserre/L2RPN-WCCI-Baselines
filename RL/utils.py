@@ -273,7 +273,7 @@ def eval_agent(env_name: str,
                           gymenv_kwargs=gymenv_kwargs,
                           obs_space_kwargs=obs_space_kwargs,
                           act_space_kwargs=act_space_kwargs)
-  _, ts_survived, _ = my_score.get(my_agent)
+  _, ts_survived, _ = my_score.get(my_agent, nb_process=nb_process_stats)
   
   if env_seeds is None :
     # compare with do nothing
