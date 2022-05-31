@@ -20,10 +20,10 @@ ENV_NAME = "l2rpn_wcci_2022"
 SCOREUSED = ScoreL2RPN2020
 verbose = False
 p = Parameters()
-p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
+p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = False
 datetime_now=datetime.now().strftime('%Y-%m-%d_%H-%M')
 is_windows_or_darwin = sys.platform.startswith("win32") or sys.platform.startswith("darwin")
-nb_process_stats = 4 if not is_windows_or_darwin else 1
+nb_process_stats = 10 if not is_windows_or_darwin else 1
   
 train_args = {}
 train_args["gymenv_kwargs"] = {"safe_max_rho": 0.2}
@@ -86,7 +86,7 @@ print("Start evaluation of agents")
 
 total_results = np.zeros((len(agents_dict), nb_scenario, 3))
 for i, (agent_name, my_agent) in enumerate(agents_dict.items()):
-    print("Evaluation of : ", agent_name)
+    print("Evaluation of :", agent_name)
     try:
         results = eval_agent(ENV_NAME,
                 nb_scenario,
@@ -98,7 +98,7 @@ for i, (agent_name, my_agent) in enumerate(agents_dict.items()):
                 param=p,
                 filter_fun=filter_chronics,
                 my_agent=my_agent,
-                nb_process_stats = nb_process_stats
+                nb_process_stats=nb_process_stats
                 )
         for k in range(3):
             total_results[i, :, k]=np.array(results[k])
