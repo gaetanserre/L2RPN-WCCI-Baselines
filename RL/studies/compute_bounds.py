@@ -16,7 +16,7 @@ import argparse
 # Arguments
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--env_name",    default="l2rpn_wcci_2022_dev", type=str)
+parser.add_argument("--env_name",    default="l2rpn_wcci_2022", type=str)
 parser.add_argument("--attributes",  default=["load_p", "p_or"], nargs='+', type=list)
 parser.add_argument("--seed",        default=42, type=int)
 parser.add_argument("--nb_chronics", default=20, type=int)
@@ -81,7 +81,7 @@ if __name__ == "__main__":
   p = Parameters()
   # Disable overflows to have th maximum number of observations
   p.NO_OVERFLOW_DISCONNECTION = True
-  env = grid2op.make("l2rpn_wcci_2022_dev", param=p, backend=LightSimBackend())
+  env = grid2op.make("l2rpn_wcci_2022", param=p, backend=LightSimBackend())
 
   create_episodes(env)
   data = get_attributes_data(env)

@@ -19,10 +19,12 @@ env = grid2op.make(env_name,
                    backend=LightSimBackend()
                    )
 
+rho_safe   = 0.85
 rho_danger = 0.95
 agent = OptimCVXPY(env.action_space,
                    env,
                    rho_danger=rho_danger,
+                   rho_safe=rho_safe,
                    penalty_redispatching_unsafe=0.99,
                    penalty_storage_unsafe=0.01,
                    penalty_curtailment_unsafe=0.01,

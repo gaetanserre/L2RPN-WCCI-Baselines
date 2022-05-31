@@ -21,7 +21,7 @@ import numpy as np
 is_windows = sys.platform.startswith("win32")
 
 env_name = "l2rpn_icaps_2021_small"
-env_name = "l2rpn_wcci_2022_dev"
+env_name = "l2rpn_wcci_2022"
 env_name = "wcci_2022_dev"
 SCOREUSED = ScoreL2RPN2020  # ScoreICAPS2021
 

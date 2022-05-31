@@ -16,7 +16,7 @@ from CustomGymEnv import CustomGymEnv
 from examples.ppo_stable_baselines.B_train_agent import CustomReward
 
 # %%
-ENV_NAME = "l2rpn_wcci_2022_dev"
+ENV_NAME = "l2rpn_wcci_2022"
 
 # Split sets and statistics parameters
 is_windows = sys.platform.startswith("win32")
