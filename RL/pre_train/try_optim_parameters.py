@@ -1,4 +1,5 @@
 import sys
+from tkinter import EXCEPTION
 # sys.path.insert(0, "../")
 sys.path.insert(0, '/home/boguslawskieva/L2RPN-WCCI-Baselines/RL')
 
@@ -62,8 +63,8 @@ parameters_to_test = [{"penalty_redispatching_unsafe":0,
                         "rho_danger":0.97,
                         "margin_th_limit":0.93,
                         "alpha_por_error":0.5},
-                        {"penalty_redispatching_unsafe":1, # 1, 10
-                        "penalty_storage_unsafe":0.01, 
+                        {"penalty_redispatching_unsafe":1, # 1, 10 (à lancer cet aprem)
+                        "penalty_storage_unsafe":0.01,  # 0.04
                         "penalty_curtailment_unsafe":0.01,
                         "rho_safe":0, # gaetan 0.6
                         "rho_danger":0.97, # To tune 0.9, 0.97, 0.3
@@ -104,10 +105,11 @@ for i, (agent_name, my_agent) in enumerate(agents_dict.items()):
             total_results[i, :, k]=np.array(results[k])
 
         parameters_to_test[i].update({"datetime_now":datetime_now, "agent_name":agent_name, "agent_id":i})
-        with open("./pre_train/dicts_optimizers_params.json", 'a') as fp:
+        with open("./pre_train/total_results/dicts_optimizers_params.json", 'a') as fp:
             json.dump(parameters_to_test[i], fp, indent=4)
-    except:
-        pass
+    except Exception as e:
+        print(e)
+        
 
-with open('./pre_train/total_results_{}.npy'.format(datetime_now), 'wb') as f:
+with open('./pre_train/total_results/total_results_{}.npy'.format(datetime_now), 'wb') as f:
     np.save(f, total_results)
