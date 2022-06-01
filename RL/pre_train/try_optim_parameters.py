@@ -26,7 +26,7 @@ p = Parameters()
 p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
 datetime_now=datetime.now().strftime('%Y-%m-%d_%H-%M')
 is_windows_or_darwin = sys.platform.startswith("win32") or sys.platform.startswith("darwin")
-nb_process_stats = 4 if not is_windows_or_darwin else 1
+nb_process_stats = 8 if not is_windows_or_darwin else 1
   
 train_args = {}
 train_args["gymenv_kwargs"] = {"safe_max_rho": 0.2}
@@ -56,20 +56,32 @@ env.chronics_handler.real_data.reset()
 
 nb_scenario = 12
 
-parameters_to_test = [{"penalty_redispatching_unsafe":0, 
-                        "penalty_storage_unsafe":0.01, 
-                        "penalty_curtailment_unsafe":0.01,
-                        "rho_safe":0.95,
-                        "rho_danger":0.97,
-                        "margin_th_limit":0.93,
-                        "alpha_por_error":0.5},
-                        {"penalty_redispatching_unsafe":1, # 1, 10 (à lancer cet aprem)
-                        "penalty_storage_unsafe":0.01,  # 0.04
-                        "penalty_curtailment_unsafe":0.01,
-                        "rho_safe":0, # gaetan 0.6
-                        "rho_danger":0.97, # To tune 0.9, 0.97, 0.3
+# parameters_to_test = [{"penalty_redispatching_unsafe":0, 
+#                         "penalty_storage_unsafe":0.01, 
+#                         "penalty_curtailment_unsafe":0.01,
+#                         "rho_safe":0.95,
+#                         "rho_danger":0.97,
+#                         "margin_th_limit":0.93,
+#                         "alpha_por_error":0.5}#,
+#                         {"penalty_redispatching_unsafe":1, # 1, 10 (à lancer cet aprem)
+#                         "penalty_storage_unsafe":0.01,  # 0.04
+#                         "penalty_curtailment_unsafe":0.01,
+#                         "rho_safe":0, # gaetan 0.6
+#                         "rho_danger":0.97, # To tune 0.9, 0.97, 0.3
+#                         "margin_th_limit":0.93,
+#                         "alpha_por_error":0.5}
+#                     ]
+
+parameters_to_test = [{"penalty_redispatching_unsafe":10, 
+                        "penalty_storage_unsafe": penalty_storage_unsafe, 
+                        "penalty_curtailment_unsafe":penalty_curtailment_unsafe,
+                        "rho_safe":0.6,
+                        "rho_danger":rho_danger,
                         "margin_th_limit":0.93,
                         "alpha_por_error":0.5}
+                        for penalty_storage_unsafe in [0.01, 0.04]
+                        for penalty_curtailment_unsafe in [0.01, 0.04]
+                        for rho_danger in [0.9, 0.97]
                     ]
 
 agents_dict = {}
