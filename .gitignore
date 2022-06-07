@@ -8,8 +8,9 @@ RL/examples/ppo_stable_baselines/__init__.py
 RL/examples/__init__.py
 RL/test.py
 RL/logs/
-RL/nohup.out_old/
+RL/nohup_old/
 RL/model_results
 *.out
-RL/preprocess_act_old.json
-RL/preprocess_obs_old.json
+RL/pre_train/expert_data/
+RL/pre_train/student/
+RL/pre_train/total_results/

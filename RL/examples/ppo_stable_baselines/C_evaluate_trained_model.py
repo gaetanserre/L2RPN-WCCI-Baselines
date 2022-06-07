@@ -16,8 +16,8 @@ from grid2op.gym_compat import GymEnv
 
 from l2rpn_baselines.PPO_SB3 import evaluate
 
-from A_prep_env import _aux_get_env, get_env_seed, name_stats
-from B_train_agent import gymenv_class, name, safe_max_rho
+from .A_prep_env import _aux_get_env, get_env_seed, name_stats
+from .B_train_agent import gymenv_class, name, safe_max_rho
 
 env_name = "l2rpn_icaps_2021_small_val"
 env_name = "l2rpn_wcci_2022_dev_val"
@@ -49,7 +49,7 @@ def load_agent(env, load_path, name,
     return trained_agent
 
 
-def get_ts_survived_dn(env_name):
+def get_ts_survived_dn(env_name, nb_scenario):
     dict_ = _aux_get_env(env_name, dn=True)
     res = []
     for kk in range(nb_scenario):
@@ -59,7 +59,7 @@ def get_ts_survived_dn(env_name):
     res -= 1  # the first observation (after reset) is counted as a step in the runner
     return res
 
-def get_ts_survived_reco(env_name):
+def get_ts_survived_reco(env_name, nb_scenario):
     dict_ = _aux_get_env(env_name, name_stat=name_stats)
     res = []
     for kk in range(nb_scenario):

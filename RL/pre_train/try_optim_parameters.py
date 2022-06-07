@@ -15,6 +15,9 @@ import pdb
 import re
 import copy
 from datetime import datetime
+import torch
+
+torch.cuda.set_device(2)
 
 os.chdir('/home/boguslawskieva/L2RPN-WCCI-Baselines/RL')
 
@@ -44,6 +47,30 @@ def filter_chronics(x):
                     "2050-10-03_31",
                     "2050-11-14_31",
                     "2050-12-19_31",
+                    "2050-01-10_31",
+                    "2050-02-07_31",
+                    "2050-03-14_31",
+                    "2050-04-11_31",
+                    "2050-05-02_31",
+                    "2050-06-20_31",
+                    "2050-07-18_31",
+                    "2050-08-08_31",
+                    "2050-09-19_31",
+                    "2050-10-10_31",
+                    "2050-11-07_31",
+                    "2050-12-12_31",
+                    "2050-01-17_31",
+                    "2050-02-14_31",
+                    "2050-03-21_31",
+                    "2050-04-25_31",
+                    "2050-05-16_31",
+                    "2050-06-13_31",
+                    "2050-07-11_31",
+                    "2050-08-15_31",
+                    "2050-09-12_31",
+                    "2050-10-17_31",
+                    "2050-11-21_31",
+                    "2050-12-05_31",
                     ] # Names of chronics to keep
     p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
     return re.match(p, x) is not None
@@ -54,7 +81,7 @@ env = grid2op.make(ENV_NAME,
 env.chronics_handler.real_data.set_filter(filter_chronics)
 env.chronics_handler.real_data.reset()
 
-nb_scenario = 12
+nb_scenario = 36
 
 # parameters_to_test = [{"penalty_redispatching_unsafe":0, 
 #                         "penalty_storage_unsafe":0.01, 
@@ -72,16 +99,28 @@ nb_scenario = 12
 #                         "alpha_por_error":0.5}
 #                     ]
 
+# parameters_to_test = [{"penalty_redispatching_unsafe":10, 
+#                         "penalty_storage_unsafe": penalty_storage_unsafe, 
+#                         "penalty_curtailment_unsafe":penalty_curtailment_unsafe,
+#                         "rho_safe":rho_safe,
+#                         "rho_danger":0.97,
+#                         "margin_th_limit":0.93,
+#                         "alpha_por_error":0.5}
+#                         for penalty_storage_unsafe in [0.04, 0.07]
+#                         for penalty_curtailment_unsafe in [0.04, 0.07]
+#                         for rho_safe in [0.6, 0.9]
+#                     ]
+
 parameters_to_test = [{"penalty_redispatching_unsafe":10, 
                         "penalty_storage_unsafe": penalty_storage_unsafe, 
                         "penalty_curtailment_unsafe":penalty_curtailment_unsafe,
-                        "rho_safe":0.6,
-                        "rho_danger":rho_danger,
+                        "rho_safe":rho_safe,
+                        "rho_danger":0.97,
                         "margin_th_limit":0.93,
                         "alpha_por_error":0.5}
-                        for penalty_storage_unsafe in [0.01, 0.04]
-                        for penalty_curtailment_unsafe in [0.01, 0.04]
-                        for rho_danger in [0.9, 0.97]
+                        for penalty_storage_unsafe in [0.04]
+                        for penalty_curtailment_unsafe in [0.04]
+                        for rho_safe in [0.7, 0.75, 0.8]
                     ]
 
 agents_dict = {}

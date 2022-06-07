@@ -56,7 +56,44 @@ train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cp
 #   return re.match(p, x) is not None
 
 def filter_chronics(x):
-  list_chronics = ['2050-01-03_31', '2050-02-21_31', '2050-03-07_31', '2050-04-18_31'] # Names of chronics to keep
+  # list_chronics = ['2050-01-03_31', '2050-02-21_31', '2050-03-07_31', '2050-04-18_31'] # Names of chronics to keep
+  list_chronics = ["2050-01-03_31",
+                  "2050-02-21_31",
+                  "2050-03-07_31",
+                  "2050-04-18_31",
+                  "2050-05-09_31",
+                  "2050-06-27_31",
+                  "2050-07-25_31",
+                  "2050-08-01_31",
+                  "2050-09-26_31",
+                  "2050-10-03_31",
+                  "2050-11-14_31",
+                  "2050-12-19_31",
+                  "2050-01-10_31",
+                  "2050-02-07_31",
+                  "2050-03-14_31",
+                  "2050-04-11_31",
+                  "2050-05-02_31",
+                  "2050-06-20_31",
+                  "2050-07-18_31",
+                  "2050-08-08_31",
+                  "2050-09-19_31",
+                  "2050-10-10_31",
+                  "2050-11-07_31",
+                  "2050-12-12_31",
+                  "2050-01-17_31",
+                  "2050-02-14_31",
+                  "2050-03-21_31",
+                  "2050-04-25_31",
+                  "2050-05-16_31",
+                  "2050-06-13_31",
+                  "2050-07-11_31",
+                  "2050-08-15_31",
+                  "2050-09-12_31",
+                  "2050-10-17_31",
+                  "2050-11-21_31",
+                  "2050-12-05_31",
+                  ]
   p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
   return re.match(p, x) is not None
 
@@ -133,7 +170,7 @@ var_to_test = "learning_rate"
 
 # values_to_test = [train_args["gymenv_kwargs"]]
 # var_to_test = "gymenv_kwargs"
-agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_to_test)
+# agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_to_test)
 
 # %%
 # env_name_val = '_'.join([ENV_NAME, "val"])
