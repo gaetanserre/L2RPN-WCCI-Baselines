@@ -1,6 +1,7 @@
 
 import sys
-sys.path.insert(0, "../")
+sys.path.insert(0, "..")
+import os
 
 # from CustomGymEnv import CustomGymEnv
 import torch
@@ -55,6 +56,7 @@ from torch.utils.data.dataset import Dataset, random_split
 import torch.nn as nn
 import torch
 
+os.chdir('/home/boguslawskieva/L2RPN-WCCI-Baselines/RL/pre_train')
 
 def get_agent(env,
           name="PPO_SB3",
@@ -219,6 +221,30 @@ def convert_obs(observations):
         converted_obs.append(gym_env.observation_space.to_gym(g2op_obs))
     return converted_obs
 
+def to_gym_acts(gym_env, g2op_actions):
+    gym_actions = []
+    for g2op_act in g2op_actions:
+        gym_act = np.zeros((0,))
+        for attr_nm in gym_env.action_space._attr_to_keep :
+            this_part_act = getattr(g2op_act, attr_nm).copy()
+            if attr_nm == "curtail" or attr_nm == "curtail_mw":
+                this_part_act = this_part_act[gym_env.init_env.action_space.gen_renewable]
+            if attr_nm == "redispatch":
+                this_part_act = this_part_act[gym_env.init_env.action_space.gen_redispatchable]
+            this_part_act = (this_part_act - gym_env.action_space._add[attr_nm]) / gym_env.action_space._multiply[attr_nm]
+            gym_act = np.concatenate((gym_act, this_part_act))
+        gym_actions.append(gym_act)
+    return gym_actions
+
+def to_gym_obss(gym_env, g2op_obss):
+    gym_obss = []
+    g2op_obs = env.reset()
+    for g2op_obs_vect in g2op_obss:
+        g2op_obs.from_vect(g2op_obs_vect)
+        gym_obs = gym_env.observation_space.to_gym(g2op_obs)
+        gym_obss.append(gym_obs)
+    return gym_obss
+
 def pretrain_agent(student,
                     batch_size=64,
                     epochs=1000,
@@ -290,9 +316,11 @@ def pretrain_agent(student,
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     # Now we are finally ready to train the policy model.
+    train_loss_list = []
+    test_loss_list = []
     for epoch in range(1, epochs + 1):
-        train_loss_list = train(model, device, train_loader, optimizer)
-        test_loss_list = test(model, device, test_loader)
+        train_loss_list += train(model, device, train_loader, optimizer)
+        test_loss_list += test(model, device, test_loader)
         optimizer.step()
     student.nn_model.policy = model
     return train_loss_list, test_loss_list
@@ -342,7 +370,7 @@ if __name__ == "__main__":
                                     "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                     ]
     train_args["act_attr_to_keep"] = ["set_storage", "curtail"]
-    train_args["iterations"] = 700_000
+    train_args["iterations"] = 30_000
     train_args["learning_rate"] = 1e-4
     train_args["net_arch"] = [300, 300, 300]
     train_args["gamma"] = 0.999
@@ -375,10 +403,12 @@ if __name__ == "__main__":
             **train_args)
 
     ## Preparation of datasets
-    data = np.load("expert_data/expert_data_2022-06-03_17-29.npz", allow_pickle=True)
+    # data = np.load("expert_data/expert_data_2022-06-03_17-29.npz", allow_pickle=True)
+    data = np.load("expert_data/expert_data_2022-06-13_20-12.npz", allow_pickle=True)
     expert_flag      = data.get("expert_flag")
-    expert_observations = convert_obs(data.get("expert_observations"))
-    expert_actions      = convert_acts(data.get("expert_actions"))
+    expert_observations = to_gym_obss(gym_env, data.get("expert_observations"))
+    # expert_actions      = to_gym_acts(gym_env, data.get("expert_actions"))
+    expert_actions      = data.get("expert_gym_actions")
     # expert_observations = [el for i,el in enumerate(expert_observations) if expert_flag[i]==2] # we only keep unsafe case
     # expert_actions = [el for i,el in enumerate(expert_actions) if expert_flag[i]==2] # we only keep unsafe case
     expert_dataset = ExpertDataSet(expert_observations, expert_actions)
@@ -391,12 +421,12 @@ if __name__ == "__main__":
     print("train_expert_dataset length: ", len(train_expert_dataset))
 
     ## Eval before pretraining
-    ts_before_pretraining = eval_agent(student, "l2rpn_wcci_2022_dev_val", 59, p, 1)
+    # ts_before_pretraining = eval_agent(student, "l2rpn_wcci_2022_dev_val", 59, p, 1)
 
     ## Pretraining and save
-    train_loss_list, test_loss_list = pretrain_agent(student, batch_size=64, epochs=100000, log_interval=10)
+    train_loss_list, test_loss_list = pretrain_agent(student, batch_size=64, epochs=300, log_interval=1)
     if save_path is not None:
-        student.nn_model.save(os.path.join(save_path, name, "nn_saved"))
+        student.nn_model.save(os.path.join(save_path, name, name))
         np.savez_compressed(
             os.path.join(save_path, name, "train_test_loss_list"),
             train_loss_list=train_loss_list,
@@ -404,8 +434,8 @@ if __name__ == "__main__":
         )
 
     ## Eval after pretraining
-    ts_after_pretraining = eval_agent(student, "l2rpn_wcci_2022_dev_val", 59, p, 1)
-    print("Eval before pretraining :", ts_before_pretraining.mean())
-    print("Eval before pretraining :", ts_after_pretraining.mean())
+    # ts_after_pretraining = eval_agent(student, "l2rpn_wcci_2022_dev_val", 59, p, 1)
+    # print("Eval before pretraining :", ts_before_pretraining.mean())
+    # print("Eval before pretraining :", ts_after_pretraining.mean())
 
     

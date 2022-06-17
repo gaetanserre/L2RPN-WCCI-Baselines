@@ -22,7 +22,7 @@ torch.cuda.set_device(2)
 os.chdir('/home/boguslawskieva/L2RPN-WCCI-Baselines/RL')
 
 save_path = "./saved_model/"
-ENV_NAME = "l2rpn_wcci_2022_dev"
+ENV_NAME = "l2rpn_wcci_2022_dev_val"
 SCOREUSED = ScoreL2RPN2020
 verbose = False
 p = Parameters()
@@ -34,54 +34,58 @@ nb_process_stats = 8 if not is_windows_or_darwin else 1
 train_args = {}
 train_args["gymenv_kwargs"] = {"safe_max_rho": 0.2}
 
-def filter_chronics(x):
-    list_chronics = ["2050-01-03_31",
-                    "2050-02-21_31",
-                    "2050-03-07_31",
-                    "2050-04-18_31",
-                    "2050-05-09_31",
-                    "2050-06-27_31",
-                    "2050-07-25_31",
-                    "2050-08-01_31",
-                    "2050-09-26_31",
-                    "2050-10-03_31",
-                    "2050-11-14_31",
-                    "2050-12-19_31",
-                    "2050-01-10_31",
-                    "2050-02-07_31",
-                    "2050-03-14_31",
-                    "2050-04-11_31",
-                    "2050-05-02_31",
-                    "2050-06-20_31",
-                    "2050-07-18_31",
-                    "2050-08-08_31",
-                    "2050-09-19_31",
-                    "2050-10-10_31",
-                    "2050-11-07_31",
-                    "2050-12-12_31",
-                    "2050-01-17_31",
-                    "2050-02-14_31",
-                    "2050-03-21_31",
-                    "2050-04-25_31",
-                    "2050-05-16_31",
-                    "2050-06-13_31",
-                    "2050-07-11_31",
-                    "2050-08-15_31",
-                    "2050-09-12_31",
-                    "2050-10-17_31",
-                    "2050-11-21_31",
-                    "2050-12-05_31",
-                    ] # Names of chronics to keep
-    p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
-    return re.match(p, x) is not None
+# def filter_chronics(x):
+#     list_chronics = ["2050-01-03_31",
+#                     "2050-02-21_31",
+#                     "2050-03-07_31",
+#                     "2050-04-18_31",
+#                     "2050-05-09_31",
+#                     "2050-06-27_31",
+#                     "2050-07-25_31",
+#                     "2050-08-01_31",
+#                     "2050-09-26_31",
+#                     "2050-10-03_31",
+#                     "2050-11-14_31",
+#                     "2050-12-19_31",
+#                     "2050-01-10_31",
+#                     "2050-02-07_31",
+#                     "2050-03-14_31",
+#                     "2050-04-11_31",
+#                     "2050-05-02_31",
+#                     "2050-06-20_31",
+#                     "2050-07-18_31",
+#                     "2050-08-08_31",
+#                     "2050-09-19_31",
+#                     "2050-10-10_31",
+#                     "2050-11-07_31",
+#                     "2050-12-12_31",
+#                     "2050-01-17_31",
+#                     "2050-02-14_31",
+#                     "2050-03-21_31",
+#                     "2050-04-25_31",
+#                     "2050-05-16_31",
+#                     "2050-06-13_31",
+#                     "2050-07-11_31",
+#                     "2050-08-15_31",
+#                     "2050-09-12_31",
+#                     "2050-10-17_31",
+#                     "2050-11-21_31",
+#                     "2050-12-05_31",
+#                     ] # Names of chronics to keep
+#     p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
+#     return re.match(p, x) is not None
+
+filter_chronics = None
 
 env = grid2op.make(ENV_NAME,
                    backend=LightSimBackend()
                    )
-env.chronics_handler.real_data.set_filter(filter_chronics)
-env.chronics_handler.real_data.reset()
+if filter_chronics is not None:
+    env.chronics_handler.real_data.set_filter(filter_chronics)
+    env.chronics_handler.real_data.reset()
 
-nb_scenario = 36
+# nb_scenario = 36
+nb_scenario = 59
 
 # parameters_to_test = [{"penalty_redispatching_unsafe":0, 
 #                         "penalty_storage_unsafe":0.01, 
@@ -111,16 +115,23 @@ nb_scenario = 36
 #                         for rho_safe in [0.6, 0.9]
 #                     ]
 
-parameters_to_test = [{"penalty_redispatching_unsafe":10, 
-                        "penalty_storage_unsafe": penalty_storage_unsafe, 
-                        "penalty_curtailment_unsafe":penalty_curtailment_unsafe,
-                        "rho_safe":rho_safe,
-                        "rho_danger":0.97,
-                        "margin_th_limit":0.93,
-                        "alpha_por_error":0.5}
-                        for penalty_storage_unsafe in [0.04]
-                        for penalty_curtailment_unsafe in [0.04]
-                        for rho_safe in [0.7, 0.75, 0.8]
+# parameters_to_test = [{"penalty_redispatching_unsafe":10, 
+#                         "penalty_storage_unsafe": penalty_storage_unsafe, 
+#                         "penalty_curtailment_unsafe":penalty_curtailment_unsafe,
+#                         "rho_safe":rho_safe,
+#                         "rho_danger":0.97,
+#                         "margin_th_limit":0.93,
+#                         "alpha_por_error":0.5}
+#                         for penalty_storage_unsafe in [0.04]
+#                         for penalty_curtailment_unsafe in [0.04]
+#                         for rho_safe in [0.7, 0.75, 0.8]
+#                     ]
+
+parameters_to_test = [{"penalty_redispatching_unsafe":0.,
+                   "penalty_storage_unsafe":0.01,
+                   "penalty_curtailment_unsafe":0.01,
+                   "penalty_curtailment_safe":0.1,
+                   "penalty_redispatching_safe":0.1}
                     ]
 
 agents_dict = {}
@@ -139,7 +150,8 @@ print("Start evaluation of agents")
 total_results = np.zeros((len(agents_dict), nb_scenario, 3))
 for i, (agent_name, my_agent) in enumerate(agents_dict.items()):
     print("Evaluation of : ", agent_name)
-    try:
+    # try:
+    for _ in range(1):
         results = eval_agent(ENV_NAME,
                 nb_scenario,
                 agent_name,
@@ -158,9 +170,9 @@ for i, (agent_name, my_agent) in enumerate(agents_dict.items()):
         parameters_to_test[i].update({"datetime_now":datetime_now, "agent_name":agent_name, "agent_id":i})
         with open("./pre_train/total_results/dicts_optimizers_params.json", 'a') as fp:
             json.dump(parameters_to_test[i], fp, indent=4)
-    except Exception as e:
-        print(e)
+    # except Exception as e:
+    #     print(e)
         
 
-with open('./pre_train/total_results/total_results_{}.npy'.format(datetime_now), 'wb') as f:
+with open('./pre_train/total_results/total_results_val_{}.npy'.format(datetime_now), 'wb') as f:
     np.save(f, total_results)

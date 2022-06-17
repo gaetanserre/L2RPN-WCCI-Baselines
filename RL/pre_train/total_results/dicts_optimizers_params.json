@@ -427,4 +427,55 @@
     "datetime_now": "2022-06-02_16-08",
     "agent_name": "optim_7",
     "agent_id": 7
+}{
+    "penalty_redispatching_unsafe": 10,
+    "penalty_storage_unsafe": 0.04,
+    "penalty_curtailment_unsafe": 0.04,
+    "rho_safe": 0.7,
+    "rho_danger": 0.97,
+    "margin_th_limit": 0.93,
+    "alpha_por_error": 0.5,
+    "datetime_now": "2022-06-07_17-07",
+    "agent_name": "optim_0",
+    "agent_id": 0
+}{
+    "penalty_redispatching_unsafe": 10,
+    "penalty_storage_unsafe": 0.04,
+    "penalty_curtailment_unsafe": 0.04,
+    "rho_safe": 0.75,
+    "rho_danger": 0.97,
+    "margin_th_limit": 0.93,
+    "alpha_por_error": 0.5,
+    "datetime_now": "2022-06-07_17-07",
+    "agent_name": "optim_1",
+    "agent_id": 1
+}{
+    "penalty_redispatching_unsafe": 10,
+    "penalty_storage_unsafe": 0.04,
+    "penalty_curtailment_unsafe": 0.04,
+    "rho_safe": 0.8,
+    "rho_danger": 0.97,
+    "margin_th_limit": 0.93,
+    "alpha_por_error": 0.5,
+    "datetime_now": "2022-06-07_17-07",
+    "agent_name": "optim_2",
+    "agent_id": 2
+}{
+    "penalty_redispatching_unsafe": 0.0,
+    "penalty_storage_unsafe": 0.01,
+    "penalty_curtailment_unsafe": 0.01,
+    "penalty_curtailment_safe": 0.1,
+    "penalty_redispatching_safe": 0.1,
+    "datetime_now": "2022-06-09_21-03",
+    "agent_name": "optim_0",
+    "agent_id": 0
+}{
+    "penalty_redispatching_unsafe": 0.0,
+    "penalty_storage_unsafe": 0.01,
+    "penalty_curtailment_unsafe": 0.01,
+    "penalty_curtailment_safe": 0.1,
+    "penalty_redispatching_safe": 0.1,
+    "datetime_now": "2022-06-15_17-51",
+    "agent_name": "optim_0",
+    "agent_id": 0
 }

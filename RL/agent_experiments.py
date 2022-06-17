@@ -17,7 +17,7 @@ from examples.ppo_stable_baselines.B_train_agent import CustomReward
 
 # %%
 
-# torch.cuda.set_device(0)
+torch.cuda.set_device(1)
 
 # %%
 ENV_NAME = "l2rpn_wcci_2022_dev"
@@ -34,8 +34,10 @@ name_stats = "_reco_powerline"
 # Train parameters
 env_name_train = '_'.join([ENV_NAME, "train"])
 save_path = "./saved_model"
-name = '_'.join(["GymEnvWithRecoWithDN", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
+name = '_'.join(["GymEnvWithRecoWithDN_senior", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
 gymenv_class = GymEnvWithRecoWithDN
+load_name = 'GymEnvWithRecoWithDN_student_2022-06-15_10-36'
+load_path = os.path.join('./pre_train/student/', load_name)
 
 
 # %%
@@ -48,6 +50,8 @@ train_args["name"] = name
 train_args["verbose"] = 1
 train_args["gymenv_class"] = gymenv_class
 train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+train_args["load_path"] = load_path
+train_args["load_name"] = load_name
 
 # Chronix to use
 # def filter_chronics(x):
@@ -55,65 +59,65 @@ train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cp
 #   p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
 #   return re.match(p, x) is not None
 
-def filter_chronics(x):
-  # list_chronics = ['2050-01-03_31', '2050-02-21_31', '2050-03-07_31', '2050-04-18_31'] # Names of chronics to keep
-  list_chronics = ["2050-01-03_31",
-                  "2050-02-21_31",
-                  "2050-03-07_31",
-                  "2050-04-18_31",
-                  "2050-05-09_31",
-                  "2050-06-27_31",
-                  "2050-07-25_31",
-                  "2050-08-01_31",
-                  "2050-09-26_31",
-                  "2050-10-03_31",
-                  "2050-11-14_31",
-                  "2050-12-19_31",
-                  "2050-01-10_31",
-                  "2050-02-07_31",
-                  "2050-03-14_31",
-                  "2050-04-11_31",
-                  "2050-05-02_31",
-                  "2050-06-20_31",
-                  "2050-07-18_31",
-                  "2050-08-08_31",
-                  "2050-09-19_31",
-                  "2050-10-10_31",
-                  "2050-11-07_31",
-                  "2050-12-12_31",
-                  "2050-01-17_31",
-                  "2050-02-14_31",
-                  "2050-03-21_31",
-                  "2050-04-25_31",
-                  "2050-05-16_31",
-                  "2050-06-13_31",
-                  "2050-07-11_31",
-                  "2050-08-15_31",
-                  "2050-09-12_31",
-                  "2050-10-17_31",
-                  "2050-11-21_31",
-                  "2050-12-05_31",
-                  ]
-  p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
-  return re.match(p, x) is not None
+# def filter_chronics(x):
+#   # list_chronics = ['2050-01-03_31', '2050-02-21_31', '2050-03-07_31', '2050-04-18_31'] # Names of chronics to keep
+#   list_chronics = ["2050-01-03_31",
+#                   "2050-02-21_31",
+#                   "2050-03-07_31",
+#                   "2050-04-18_31",
+#                   "2050-05-09_31",
+#                   "2050-06-27_31",
+#                   "2050-07-25_31",
+#                   "2050-08-01_31",
+#                   "2050-09-26_31",
+#                   "2050-10-03_31",
+#                   "2050-11-14_31",
+#                   "2050-12-19_31",
+#                   "2050-01-10_31",
+#                   "2050-02-07_31",
+#                   "2050-03-14_31",
+#                   "2050-04-11_31",
+#                   "2050-05-02_31",
+#                   "2050-06-20_31",
+#                   "2050-07-18_31",
+#                   "2050-08-08_31",
+#                   "2050-09-19_31",
+#                   "2050-10-10_31",
+#                   "2050-11-07_31",
+#                   "2050-12-12_31",
+#                   "2050-01-17_31",
+#                   "2050-02-14_31",
+#                   "2050-03-21_31",
+#                   "2050-04-25_31",
+#                   "2050-05-16_31",
+#                   "2050-06-13_31",
+#                   "2050-07-11_31",
+#                   "2050-08-15_31",
+#                   "2050-09-12_31",
+#                   "2050-10-17_31",
+#                   "2050-11-21_31",
+#                   "2050-12-05_31",
+#                   ]
+#   p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
+#   return re.match(p, x) is not None
 
-# filter_chronics = None
+filter_chronics = None
 
 # %%
 # Generate statistics
 
 try:
-  if filter_chronics is None:
-    env = grid2op.make(ENV_NAME)
-    nm_train, nm_val, nm_test = split_train_val_test_sets(env, deep_copy)
-    generate_statistics([nm_val, nm_test], SCOREUSED, nb_process_stats, name_stats, verbose)
-  else:
-    generate_statistics([ENV_NAME], SCOREUSED, nb_process_stats, name_stats, verbose, filter_fun=filter_chronics)
+    if filter_chronics is None:
+        env = grid2op.make(ENV_NAME)
+        nm_train, nm_val, nm_test = split_train_val_test_sets(env, deep_copy)
+        generate_statistics([nm_val, nm_test], SCOREUSED, nb_process_stats, name_stats, verbose)
+    else:
+        generate_statistics([ENV_NAME], SCOREUSED, nb_process_stats, name_stats, verbose, filter_fun=filter_chronics)
 except Exception as e:
-  if str(e).startswith("Impossible to create"):
-    pass
-  else:
-    raise e
+    if str(e).startswith("Impossible to create"):
+        pass
+    else:
+        raise e
 
 # %%
 # Learn parameters PPO
@@ -128,7 +132,7 @@ train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute
                                   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                   ]
 train_args["act_attr_to_keep"] = ["curtail", "set_storage"]
-train_args["iterations"] = 10_000_000
+train_args["iterations"] = 10_000
 train_args["learning_rate"] =  1e-4 # 3e-4
 train_args["net_arch"] = [300, 300, 300] # [200, 200, 200, 200]
 train_args["gamma"] = 0.999
@@ -153,8 +157,8 @@ env_train = grid2op.make(env_name_train if filter_chronics is None else ENV_NAME
                    param=p)
 
 if filter_chronics is not None:
-  env_train.chronics_handler.real_data.set_filter(filter_chronics)
-  env_train.chronics_handler.real_data.reset()
+    env_train.chronics_handler.real_data.set_filter(filter_chronics)
+    env_train.chronics_handler.real_data.reset()
 
 # def lr_fun(x_left):
 #     x = 1 - x_left
@@ -165,12 +169,12 @@ if filter_chronics is not None:
 #     return lr
 
 # values_to_test = np.array([3e-6, lr_fun])
-values_to_test = np.array([3e-6])
+values_to_test = np.array([1e-6])
 var_to_test = "learning_rate"
 
 # values_to_test = [train_args["gymenv_kwargs"]]
 # var_to_test = "gymenv_kwargs"
-# agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_to_test)
+agents = iter_hyperparameters(env_train, train_args, name, var_to_test, values_to_test)
 
 # %%
 # env_name_val = '_'.join([ENV_NAME, "val"])
