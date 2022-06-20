@@ -77,8 +77,8 @@ def generate_statistics(env_list, SCOREUSED, nb_process_stats, name_stats, verbo
 
         act_space_kwargs = {"add": {"redispatch": [0. for gen_id in range(env_tmp.n_gen) if env_tmp.gen_redispatchable[gen_id]],
                                     "set_storage": [0. for _ in range(env_tmp.n_storage)]},
-                            'multiply': {"redispatch": [1. / (max(float(el), 1.0)) for gen_id, el in enumerate(env_tmp.gen_max_ramp_up) if env_tmp.gen_redispatchable[gen_id]],
-                                          "set_storage": [1. / (max(float(el), 1.0)) for el in env_tmp.storage_max_p_prod]}
+                            'multiply': {"redispatch": [max(float(el), 1.0) for gen_id, el in enumerate(env_tmp.gen_max_ramp_up) if env_tmp.gen_redispatchable[gen_id]],
+                                          "set_storage": [max(float(el), 1.0) for el in env_tmp.storage_max_p_prod]}
                             }
         with open("./preprocess_act.json", "w", encoding="utf-8") as f:
           json.dump(obj=act_space_kwargs, fp=f)
@@ -196,7 +196,7 @@ def eval_agent(env_name: str,
                agent_name: str,
                load_path: str,
                SCOREUSED,
-               verbose=True,
+               verbose,
                gymenv_class=RecoPowerlineAgent,
                nb_process_stats=1,
                gymenv_kwargs={},
