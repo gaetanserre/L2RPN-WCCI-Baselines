@@ -41,6 +41,7 @@ def train(env,
           iterations=1,
           save_path=None,
           load_path=None,
+          load_name=None,
           net_arch=None,
           logs_dir=None,
           learning_rate=3e-4,
@@ -268,18 +269,17 @@ def train(env,
                                                      name_prefix=name)
 
     # define the policy
-    if load_path is None:
-        if policy_kwargs is None:
-            policy_kwargs = {}
-        if net_arch is not None:
-            policy_kwargs["net_arch"] = net_arch
-        if logs_dir is not None:
-            if not os.path.exists(logs_dir):
-                os.mkdir(logs_dir)
-            this_logs_dir = os.path.join(logs_dir, name)
-        else:
-            this_logs_dir = None
-                
+    if policy_kwargs is None:
+        policy_kwargs = {}
+    if net_arch is not None:
+        policy_kwargs["net_arch"] = net_arch
+    if logs_dir is not None:
+        if not os.path.exists(logs_dir):
+            os.mkdir(logs_dir)
+        this_logs_dir = os.path.join(logs_dir, name)
+    else:
+        this_logs_dir = None
+    if load_path is None:                
         nn_kwargs = {
             "policy": model_policy,
             "env": env_gym,
@@ -294,11 +294,23 @@ def train(env,
                          env_gym.observation_space,
                          nn_kwargs=nn_kwargs,
         )
-    else:        
+    else:                    
+        nn_kwargs_load = {
+            "policy": model_policy,
+            "verbose": verbose,
+            "learning_rate": learning_rate,
+            "tensorboard_log": this_logs_dir,
+            "policy_kwargs": policy_kwargs,
+            **kwargs
+        }
+        if load_name is None:
+            load_name = name  
         agent = SB3Agent(env.action_space,
                          env_gym.action_space,
                          env_gym.observation_space,
-                         nn_path=os.path.join(load_path, name)
+                         gymenv=env_gym,
+                         nn_path=os.path.join(load_path, load_name),
+                         nn_kwargs_load=nn_kwargs_load
         )
 
     # train it

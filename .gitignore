@@ -7,3 +7,9 @@ RL/examples/ppo_stable_baselines/__init__.py
 RL/examples/__init__.py
 test.py
 RL/logs/
+study_rl_agent
+RL/studies/output_agents_no_overflow/DoNothingAgent
+script
+local_logs/
+PPO_tests/exps
+PPO_tests/logs
