@@ -211,6 +211,7 @@ class SB3Agent(GymAgent):
                  nn_type=PPO,
                  nn_path=None,
                  nn_kwargs=None,
+                 nn_kwargs_load=None,
                  custom_load_dict=None,
                  gymenv=None,
                  iter_num=None,
@@ -220,6 +221,11 @@ class SB3Agent(GymAgent):
             self.custom_load_dict = custom_load_dict
         else:
             self.custom_load_dict = {}
+        if nn_kwargs_load is not None:
+            self.nn_kwargs_load = nn_kwargs_load
+        else :
+            self.nn_kwargs_load = {}
+
         self._iter_num : Optional[int] = iter_num 
         super().__init__(g2op_action_space, gym_act_space, gym_obs_space,
                          nn_path=nn_path, nn_kwargs=nn_kwargs,
@@ -266,7 +272,9 @@ class SB3Agent(GymAgent):
         if self._iter_num is not None:
             path_load = path_load + f"_{self._iter_num}_steps"
         self.nn_model = self._nn_type.load(path_load,
-                                           custom_objects=custom_objects)
+                                           custom_objects=custom_objects,
+                                           env = self.gymenv,
+                                           **self.nn_kwargs_load)
         
     def build(self):
         """Create the underlying NN model from scratch.
