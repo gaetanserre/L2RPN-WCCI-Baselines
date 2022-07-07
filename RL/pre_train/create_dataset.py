@@ -10,25 +10,28 @@ from lightsim2grid import LightSimBackend
 from tqdm import tqdm
 import numpy as np
 from datetime import datetime
-import torch
 from grid2op.gym_compat import BoxGymActSpace, BoxGymObsSpace, GymEnv
 from l2rpn_baselines.PPO_SB3.utils import remove_non_usable_attr
 from l2rpn_baselines.utils import GymEnvWithRecoWithDN
-
-torch.cuda.set_device(1)
-
-os.chdir('/home/boguslawskieva/L2RPN-WCCI-Baselines/RL')
+import re
 
 # Create grid2op env
-env_name = "l2rpn_wcci_2022_dev_train"  # name subject to change
+env_name = "l2rpn_wcci_2022_train"  # name subject to change
 is_test = False
 datetime_now=datetime.now().strftime('%Y-%m-%d_%H-%M')
-NUM_CHRONICS = 100
+NUM_CHRONICS = 3
 
 env = grid2op.make(env_name,
                    test=is_test,
-                   backend=LightSimBackend()
-                   )
+                   backend=LightSimBackend())
+
+def filter_chronics(x):
+  list_chronics = ["2050-01-03_1"]
+  p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
+  return re.match(p, x) is not None
+
+env.chronics_handler.real_data.set_filter(filter_chronics)
+env.chronics_handler.real_data.reset()
 env.chronics_handler.real_data.shuffle()
 
 # Create gym env
@@ -47,7 +50,7 @@ obs_attr_to_keep = ["month", "day_of_week", "hour_of_day", "minute_of_hour",
                                   # curtailment part of the observation
                                   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                   ]
-act_attr_to_keep = ["curtail", "set_storage"]
+act_attr_to_keep = ["curtail", "set_storage", "redispatch"]
 act_attr_to_keep = remove_non_usable_attr(env, act_attr_to_keep)
 
 
@@ -95,18 +98,30 @@ def to_gym_act(env_gym, g2op_actions):
     return converted_acts
 
 # Define optimizer agent
-rho_safe   = 0.6
+rho_safe   = 0.95
 rho_danger = 0.97
+
+""" agent = OptimCVXPY(env.action_space,
+                   env,
+                   penalty_redispatching_unsafe=0.99,
+                   penalty_storage_unsafe=0.01,
+                   penalty_curtailment_unsafe=0.01,
+                   rho_safe=rho_safe,
+                   rho_danger=rho_danger,
+                   margin_th_limit=0.93,
+                   alpha_por_error=0.5,
+                   weight_redisp_target=0.3) """
+
 agent = OptimCVXPY(env.action_space,
                    env,
-                   rho_danger=rho_danger,
+                   penalty_redispatching_unsafe=0.01,
+                   penalty_storage_unsafe=0.01,
+                   penalty_curtailment_unsafe=0.01,
                    rho_safe=rho_safe,
-                   penalty_redispatching_unsafe=0.04,
-                   penalty_storage_unsafe=0.04,
-                   penalty_curtailment_unsafe=0.04,
+                   rho_danger=rho_danger,
                    margin_th_limit=0.93,
-                   alpha_por_error=0.5
-                   )
+                   alpha_por_error=0.5,
+                   weight_redisp_target=0.3)
 
 
 expert_observations = []
@@ -136,7 +151,7 @@ for num in range(NUM_CHRONICS):
     print(f"\t scenario: {os.path.split(env.chronics_handler.get_id())[-1]}: {nb_step + 1} / {obs.max_step}")
 
     np.savez_compressed(
-        "pre_train/expert_data/expert_data_{}".format(datetime_now),
+        "expert_data/expert_data_{}".format(datetime_now),
         expert_actions=expert_actions,
         expert_observations=expert_observations,
         expert_flag=expert_flag,

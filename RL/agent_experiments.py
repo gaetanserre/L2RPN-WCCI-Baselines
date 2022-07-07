@@ -28,9 +28,9 @@ SCOREUSED = ScoreL2RPN2022  # ScoreICAPS2021
 name_stats = "_reco_powerline"
 
 # Train parameters
-env_name_train = '_'.join([ENV_NAME, "train"])
+env_name_train = ENV_NAME#'_'.join([ENV_NAME, "train"])
 save_path = "./saved_model"
-name = '_'.join(["CustomGymEnv_senior", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
+name = '_'.join(["exp_agent", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
 gymenv_class = CustomGymEnv
 load_name = 'GymEnvWithRecoWithDN_student_2022-06-15_10-36'
 load_path = os.path.join(save_path, load_name)
@@ -46,8 +46,8 @@ train_args["name"] = name
 train_args["verbose"] = 1
 train_args["gymenv_class"] = gymenv_class
 train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-train_args["load_path"] = load_path
-train_args["load_name"] = load_name
+#train_args["load_path"] = load_path
+#train_args["load_name"] = load_name
 
 # Chronix to use
 # def filter_chronics(x):
@@ -132,11 +132,11 @@ train_args["iterations"] = 10_000_000
 train_args["learning_rate"] = 3e-6 # 3e-4
 train_args["net_arch"] = [300, 300, 300] # [200, 200, 200, 200]
 train_args["gamma"] = 0.999
-train_args["gymenv_kwargs"] = {"safe_max_rho": 0.9} # {"safe_max_rho": 0.9}
+train_args["gymenv_kwargs"] = {"safe_max_rho": 0.2} # {"safe_max_rho": 0.9}
 train_args["normalize_act"] = True
 train_args["normalize_obs"] = True
 
-train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 100_000)
+train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 500_000)
 
 train_args["n_steps"] = 16 # 256
 train_args["batch_size"] = 16 # 64
@@ -147,7 +147,7 @@ p = Parameters()
 p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True # It causes errors during training
 
 env_train = grid2op.make(env_name_train if filter_chronics is None else ENV_NAME,
-                   reward_class=CustomReward2,
+                   reward_class=CustomReward,
                    backend=LightSimBackend(),
                    chronics_class=MultifolderWithCache,
                    param=p)
