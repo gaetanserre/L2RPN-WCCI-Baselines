@@ -115,7 +115,7 @@ if __name__ == "__main__":
     train_args["gymenv_kwargs"] = {"safe_max_rho": float(args.safe_max_rho)}
     train_args["normalize_act"] = True
     train_args["normalize_obs"] = True
-    train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 100_000)
+    train_args["save_every_xxx_steps"] = min(max(train_args["iterations"]//10, 1), 500_000)
     train_args["n_steps"] = 16 # 256
     train_args["batch_size"] = 16 # 64
     train_args["learning_rate"] =  float(args.lr)
