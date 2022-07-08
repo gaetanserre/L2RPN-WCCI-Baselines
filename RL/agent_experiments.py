@@ -1,3 +1,4 @@
+from dataclasses import replace
 import warnings
 import torch
 import datetime
@@ -48,6 +49,11 @@ def cli():
     
     parser.add_argument("--seed", default=-1, type=int,
                         help="Seed to use (default to -1 meaning 'don't seed the env') for the environment (same seed used to train all agents)")
+    
+    parser.add_argument("--ratio_keep_chronics", default=1., type=float,
+                        help=("Faction of the training set to keep for training. Chronics will be re sampled for each agents. Note that each agent "
+                              "will see different chronics (sampling is done for each agent)")
+                        )
     
     return parser.parse_args()
 
@@ -112,9 +118,10 @@ if __name__ == "__main__":
     train_args["n_steps"] = 16 # 256
     train_args["batch_size"] = 16 # 64
     train_args["learning_rate"] =  float(args.lr)
+    # train_args["ratio_keep_chronics"] =  float(args.ratio_keep_chronics)
     
     # Set the right grid2op environment parameters
-    filter_chronics = None
+    filter_chronics = None        
     try:
         if filter_chronics is None:
             # env = grid2op.make(ENV_NAME)
@@ -131,6 +138,12 @@ if __name__ == "__main__":
     param = env_tmp.parameters
     param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
     
+    size_ = None
+    if float(args.ratio_keep_chronics) < 1.:
+        all_data = env_tmp.chronics_handler.real_data.subpaths
+        nb_data = len(all_data)
+        size_ = int(float(args.ratio_keep_chronics) * nb_data)
+    
     # determine how many agent will be trained
     nb_train = args.nb_training
     if nb_train == -1:
@@ -146,11 +159,24 @@ if __name__ == "__main__":
         env_train.chronics_handler.real_data.set_filter(filter_chronics)
     else:
         env_train.chronics_handler.real_data.set_filter(lambda x: True)
+        
     # do not forget to load all the data in memory !
-    env_train.chronics_handler.real_data.reset()
+    if float(args.ratio_keep_chronics) >= 1.:
+        # otherwise it's reset for each agent
+        env_train.chronics_handler.real_data.reset()
     
     # now do the loop to train the agents
     for _ in range(nb_train):
+        if float(args.ratio_keep_chronics) < 1.:
+            # TODO reproductibility !
+            ID_TO_KEEP = set(np.random.choice(all_data, size=size_, replace=False))
+            def filter_chronics(nm, to_keep=ID_TO_KEEP):
+                return nm in to_keep
+            
+            env_train.chronics_handler.real_data.set_filter(filter_chronics)
+            env_train.chronics_handler.real_data.reset()
+            print(env_train.chronics_handler.real_data._order)
+        
         if int(args.seed) >= 0:
             env_train.seed(args.seed)
         # reset the env to have everything "correct"
@@ -159,11 +185,15 @@ if __name__ == "__main__":
         env_train.chronics_handler.shuffle()
         # reset the env to have everything "correct"
         env_train.reset()
-        
         # assign a unique name
-        agent_name = f"{args.agent_name}_{datetime.datetime.now():%Y-%m-%d_%H-%M}"
+        agent_name = f"{args.agent_name}_{datetime.datetime.now():%Y%m%d_%H%M%S}"
         train_args["name"] = agent_name
         
         values_to_test = np.array([float(args.lr)])
         var_to_test = "learning_rate"
-        agents = iter_hyperparameters(env_train, train_args, agent_name, var_to_test, values_to_test)
+        agents = iter_hyperparameters(env_train,
+                                      train_args,
+                                      agent_name,
+                                      var_to_test,
+                                      values_to_test,
+                                      other_meta_params={"ratio_keep_chronics":  float(args.ratio_keep_chronics)})

@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import grid2op
 from typing import List, Any
@@ -85,7 +86,7 @@ def generate_statistics(env_list, SCOREUSED, nb_process_stats, name_stats, verbo
           json.dump(obj=act_space_kwargs, fp=f)
 
 
-def train_agent(env, train_args:dict, max_iter:int = None):
+def train_agent(env, train_args:dict, max_iter:int = None, other_meta_params=None):
   """
   This function trains an agent using the PPO algorithm
   with the arguments described in train_args.
@@ -111,6 +112,8 @@ def train_agent(env, train_args:dict, max_iter:int = None):
         The trained baseline as a stable baselines PPO element.
   """
 
+  if other_meta_params is None:
+    other_meta_params = {}
   if max_iter is not None:
     env.set_max_iter(max_iter)
   _ = env.reset()
@@ -125,6 +128,7 @@ def train_agent(env, train_args:dict, max_iter:int = None):
   dict_to_json["learning_rate"] = dict_to_json["learning_rate"] if isinstance(dict_to_json["learning_rate"], float) else dict_to_json["learning_rate"].__name__
   dict_to_json["device"] = str(dict_to_json["device"])
   dict_to_json["reward"] = str(type(env.get_reward_instance()))
+  dict_to_json["other_meta_params"] = copy.deepcopy(other_meta_params)
   os.makedirs(os.path.join(train_args["save_path"], train_args["name"]), exist_ok=True)
   with open(full_path, 'x') as fp:
     json.dump(dict_to_json, fp, indent=4)
@@ -147,7 +151,8 @@ def iter_hyperparameters(env,
                          name:str,
                          hyperparam_name:str,
                          hyperparam_values: List[Any],
-                         max_iter:int = None):
+                         max_iter:int = None,
+                         other_meta_params = None):
   """
   For each value v contained in `hyperparam_values`, this function
   trains an agent by setting the hyperparameter `hyperparam_name` to v.
@@ -187,7 +192,7 @@ def iter_hyperparameters(env,
     train_args["name"] = '_'.join([name, hyperparam_name, str(i)])
     train_args[hyperparam_name] = v
 
-    ret_agents.append((train_args["name"], train_agent(env, train_args, max_iter)))
+    ret_agents.append((train_args["name"], train_agent(env, train_args, max_iter, other_meta_params)))
   
   return ret_agents
 
