@@ -17,7 +17,7 @@ from examples.ppo_stable_baselines.B_train_agent import CustomReward
 
 # %%
 
-torch.cuda.set_device(1)
+torch.cuda.set_device(3)
 
 # %%
 ENV_NAME = "l2rpn_wcci_2022_dev"
@@ -34,10 +34,13 @@ name_stats = "_reco_powerline"
 # Train parameters
 env_name_train = '_'.join([ENV_NAME, "train"])
 save_path = "./saved_model"
-name = '_'.join(["GymEnvWithRecoWithDN_senior", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
+name = '_'.join(["GymEnvWithRecoWithDN", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
+# name = '_'.join(["GymEnvWithRecoWithDN_senior", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
 gymenv_class = GymEnvWithRecoWithDN
-load_name = 'GymEnvWithRecoWithDN_student_2022-06-15_10-36'
-load_path = os.path.join('./pre_train/student/', load_name)
+load_path = None
+load_name = None
+# load_name = 'GymEnvWithRecoWithDN_student_2022-06-15_10-36'
+# load_path = os.path.join('./pre_train/student/', load_name)
 
 
 # %%
@@ -101,7 +104,8 @@ train_args["load_name"] = load_name
 #   p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
 #   return re.match(p, x) is not None
 
-filter_chronics = None
+def filter_chronics(chr):
+    return True
 
 # %%
 # Generate statistics
@@ -132,7 +136,7 @@ train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute
                                   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                   ]
 train_args["act_attr_to_keep"] = ["curtail", "set_storage"]
-train_args["iterations"] = 10_000
+train_args["iterations"] = 10_000_000
 train_args["learning_rate"] =  1e-4 # 3e-4
 train_args["net_arch"] = [300, 300, 300] # [200, 200, 200, 200]
 train_args["gamma"] = 0.999
@@ -140,7 +144,7 @@ train_args["gymenv_kwargs"] = {"safe_max_rho": 0.2} # {"safe_max_rho": 0.9}
 train_args["normalize_act"] = True
 train_args["normalize_obs"] = True
 
-train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 100_000)
+train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 500_000)
 
 train_args["n_steps"] = 16 # 256
 train_args["batch_size"] = 16 # 64
@@ -151,7 +155,7 @@ p = Parameters()
 p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True # It causes errors during training
 
 env_train = grid2op.make(env_name_train if filter_chronics is None else ENV_NAME,
-                   reward_class=CustomReward2,
+                   reward_class=CustomReward,
                    backend=LightSimBackend(),
                    chronics_class=MultifolderWithCache,
                    param=p)
@@ -169,7 +173,7 @@ if filter_chronics is not None:
 #     return lr
 
 # values_to_test = np.array([3e-6, lr_fun])
-values_to_test = np.array([1e-6])
+values_to_test = np.array([3e-6])
 var_to_test = "learning_rate"
 
 # values_to_test = [train_args["gymenv_kwargs"]]
