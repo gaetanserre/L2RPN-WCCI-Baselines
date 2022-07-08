@@ -118,7 +118,6 @@ if __name__ == "__main__":
     train_args["n_steps"] = 16 # 256
     train_args["batch_size"] = 16 # 64
     train_args["learning_rate"] =  float(args.lr)
-    # train_args["ratio_keep_chronics"] =  float(args.ratio_keep_chronics)
     
     # Set the right grid2op environment parameters
     filter_chronics = None        
