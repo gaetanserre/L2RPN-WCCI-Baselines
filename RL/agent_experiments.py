@@ -65,6 +65,7 @@ if __name__ == "__main__":
                           "This program will ignore the \"--cuda_device = XXX\" directive.")
         
     ENV_NAME = "l2rpn_wcci_2022"
+    # ENV_NAME = "l2rpn_wcci_2022_dev"
 
     # Split sets and statistics parameters
     is_windows = sys.platform.startswith("win32")
