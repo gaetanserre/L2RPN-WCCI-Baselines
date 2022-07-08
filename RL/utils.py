@@ -20,7 +20,7 @@ from examples.ppo_stable_baselines.A_prep_env import get_env_seed
 from examples.ppo_stable_baselines.C_evaluate_trained_model import get_ts_survived_dn, get_ts_survived_reco, load_agent
 
 
-def split_train_val_test_sets(ENV_NAME, deep_copy):
+def split_train_val_test_sets(ENV_NAME: str, deep_copy):
   env = grid2op.make(ENV_NAME, backend=LightSimBackend())
   env.seed(1)
   env.reset()

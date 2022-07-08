@@ -1,191 +1,168 @@
-# %%
-import grid2op
-import numpy as np
-from lightsim2grid import LightSimBackend
-from grid2op.Chronics import MultifolderWithCache
-from CustomGymEnv import CustomGymEnv
-from grid2op.Parameters import Parameters
-from grid2op.utils import ScoreL2RPN2022
+import warnings
 import torch
 import datetime
 import sys
 import re
+import os
+import argparse
+import numpy as np
+
+from lightsim2grid import LightSimBackend
+
+import grid2op
+from grid2op.Chronics import MultifolderWithCache
+from grid2op.utils import ScoreL2RPN2022, ScoreL2RPN2020
+# from l2rpn_baselines.utils import GymEnvWithRecoWithDN
 
 from utils import *
-from CustomGymEnv import CustomGymEnv
+# from CustomGymEnv import CustomGymEnv
+
 
 from examples.ppo_stable_baselines.B_train_agent import CustomReward
 
-# %%
-ENV_NAME = "l2rpn_wcci_2022"
-
-# Split sets and statistics parameters
-is_windows = sys.platform.startswith("win32")
-is_windows_or_darwin = sys.platform.startswith("win32") or sys.platform.startswith("darwin")
-nb_process_stats = 8 if not is_windows_or_darwin else 1
-deep_copy = is_windows  # force the deep copy on windows (due to permission issue in symlink in windows)
-verbose = 1
-SCOREUSED = ScoreL2RPN2022  # ScoreICAPS2021
-name_stats = "_reco_powerline"
-
-# Train parameters
-env_name_train = '_'.join([ENV_NAME, "train"])
-save_path = "./saved_model"
-name = '_'.join(["CustomGymEnv_senior", datetime.datetime.now().strftime('%Y-%m-%d_%H-%M')])
-gymenv_class = CustomGymEnv
-load_name = 'GymEnvWithRecoWithDN_student_2022-06-15_10-36'
-load_path = os.path.join(save_path, load_name)
+from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
 
 
-# %%
-train_args = {}
+def cli():
+    parser = argparse.ArgumentParser(description="Train baseline PPO")
+    parser.add_argument("--has_cuda", default=1, type=int,
+                        help="Is pytorch installed with cuda support ? (default True)")
+    
+    parser.add_argument("--cuda_device", default=0, type=int,
+                        help="Which cuda device to use for pytorch (only used if you want to use cuda)")
 
-# Utility parameters PPO
-train_args["logs_dir"] = "./logs"
-train_args["save_path"] = save_path
-train_args["name"] = name
-train_args["verbose"] = 1
-train_args["gymenv_class"] = gymenv_class
-train_args["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-train_args["load_path"] = load_path
-train_args["load_name"] = load_name
+    parser.add_argument("--nb_training", default=-1, type=int,
+                        help="How many models do you want to train ? (default: -1 for infinity, might take a while...)")
 
-# Chronix to use
-# def filter_chronics(x):
-#   list_chronics = ['2050-01-10_0', '2050-08-01_7'] # Names of chronics to keep
-#   p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
-#   return re.match(p, x) is not None
+    parser.add_argument("--lr", default=3e-6, type=float,
+                        help="learning rate to use (default 3e-6)")
+    
+    parser.add_argument("--safe_max_rho", default=0.2, type=float,
+                        help="safe_max_rho to use for training (default 0.2)")
+    
+    parser.add_argument("--training_iter", default=10_000_000, type=int,
+                        help="Number of training 'iteration' to perform (default 10_000_000)")
+    
+    parser.add_argument("--agent_name", default="GymEnvWithRecoWithDN", type=str,
+                        help="Name for your agent, default 'GymEnvWithRecoWithDN'")
+    
+    parser.add_argument("--seed", default=-1, type=int,
+                        help="Seed to use (default to -1 meaning 'don't seed the env') for the environment (same seed used to train all agents)")
+    
+    return parser.parse_args()
 
-# def filter_chronics(x):
-#   # list_chronics = ['2050-01-03_31', '2050-02-21_31', '2050-03-07_31', '2050-04-18_31'] # Names of chronics to keep
-#   list_chronics = ["2050-01-03_31",
-#                   "2050-02-21_31",
-#                   "2050-03-07_31",
-#                   "2050-04-18_31",
-#                   "2050-05-09_31",
-#                   "2050-06-27_31",
-#                   "2050-07-25_31",
-#                   "2050-08-01_31",
-#                   "2050-09-26_31",
-#                   "2050-10-03_31",
-#                   "2050-11-14_31",
-#                   "2050-12-19_31",
-#                   "2050-01-10_31",
-#                   "2050-02-07_31",
-#                   "2050-03-14_31",
-#                   "2050-04-11_31",
-#                   "2050-05-02_31",
-#                   "2050-06-20_31",
-#                   "2050-07-18_31",
-#                   "2050-08-08_31",
-#                   "2050-09-19_31",
-#                   "2050-10-10_31",
-#                   "2050-11-07_31",
-#                   "2050-12-12_31",
-#                   "2050-01-17_31",
-#                   "2050-02-14_31",
-#                   "2050-03-21_31",
-#                   "2050-04-25_31",
-#                   "2050-05-16_31",
-#                   "2050-06-13_31",
-#                   "2050-07-11_31",
-#                   "2050-08-15_31",
-#                   "2050-09-12_31",
-#                   "2050-10-17_31",
-#                   "2050-11-21_31",
-#                   "2050-12-05_31",
-#                   ]
-#   p = re.compile(".*(" + '|'.join([c + '$' for c in list_chronics]) + ")")
-#   return re.match(p, x) is not None
 
-filter_chronics = None
-
-# %%
-# Generate statistics
-
-try:
-    if filter_chronics is None:
-        env = grid2op.make(ENV_NAME)
-        nm_train, nm_val, nm_test = split_train_val_test_sets(env, deep_copy)
-        generate_statistics([nm_val, nm_test], SCOREUSED, nb_process_stats, name_stats, verbose)
+if __name__ == "__main__":
+    args = cli()
+    use_cuda = int(args.has_cuda) >= 1
+    if use_cuda >= 1:
+        assert torch.cuda.is_available(), "cuda is not available on your machine with pytorch"
+        torch.cuda.set_device(int(args.cuda_device))
     else:
-        generate_statistics([ENV_NAME], SCOREUSED, nb_process_stats, name_stats, verbose, filter_fun=filter_chronics)
-except Exception as e:
-    if str(e).startswith("Impossible to create"):
-        pass
+        warnings.warn("You won't use cuda")
+        if int(args.cuda_device) != 0:
+            warnings.warn("You specified to use a cuda_device (\"--cuda_device = XXX\") yet you tell the program not to use cuda (\"--has_cuda = 0\"). "
+                          "This program will ignore the \"--cuda_device = XXX\" directive.")
+        
+    ENV_NAME = "l2rpn_wcci_2022"
+
+    # Split sets and statistics parameters
+    is_windows = sys.platform.startswith("win32")
+    is_windows_or_darwin = sys.platform.startswith("win32") or sys.platform.startswith("darwin")
+    nb_process_stats = 8 if not is_windows_or_darwin else 1
+    deep_copy = is_windows  # force the deep copy on windows (due to permission issue in symlink in windows)
+    verbose = 1
+    SCOREUSED = ScoreL2RPN2020  # ScoreICAPS2021
+    name_stats = "_reco_powerline"
+
+    # save / load information (NB agent name is defined later)
+    env_name_train = '_'.join([ENV_NAME, "train"])
+    save_path = "./saved_model"
+    gymenv_class = GymEnvWithRecoWithDNWithShuffle
+    load_path = None
+    load_name = None
+
+    # PPO parameters
+    train_args = {}
+    train_args["logs_dir"] = "./logs"
+    train_args["save_path"] = save_path
+    train_args["verbose"] = 1
+    train_args["gymenv_class"] = gymenv_class
+    train_args["device"] = torch.device("cuda" if use_cuda else "cpu")
+    # some "meta parameters" of the training and the optimization
+    train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute_of_hour",
+                                      "gen_p", "load_p", 
+                                      "p_or", "rho", "timestep_overflow", "line_status",
+                                      # dispatch part of the observation
+                                      "actual_dispatch", "target_dispatch",
+                                      # storage part of the observation
+                                      "storage_charge", "storage_power",
+                                      # curtailment part of the observation
+                                      "curtailment", "curtailment_limit",  "gen_p_before_curtail",
+                                     ]
+    train_args["act_attr_to_keep"] = ["curtail", "set_storage"]
+    train_args["iterations"] = int(args.training_iter)
+    train_args["net_arch"] = [300, 300, 300] # [200, 200, 200, 200]
+    train_args["gamma"] = 0.999
+    train_args["gymenv_kwargs"] = {"safe_max_rho": float(args.safe_max_rho)}
+    train_args["normalize_act"] = True
+    train_args["normalize_obs"] = True
+    train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 100_000)
+    train_args["n_steps"] = 16 # 256
+    train_args["batch_size"] = 16 # 64
+    train_args["learning_rate"] =  float(args.lr)
+    
+    # Set the right grid2op environment parameters
+    filter_chronics = None
+    try:
+        if filter_chronics is None:
+            # env = grid2op.make(ENV_NAME)
+            nm_train, nm_val, nm_test = split_train_val_test_sets(ENV_NAME, deep_copy)
+            generate_statistics([nm_val, nm_test], SCOREUSED, nb_process_stats, name_stats, verbose)
+        else:
+            generate_statistics([ENV_NAME], SCOREUSED, nb_process_stats, name_stats, verbose, filter_fun=filter_chronics)
+    except Exception as exc_:
+        if str(exc_).startswith("Impossible to create"):
+            pass
+        else:
+            raise exc_
+    env_tmp = grid2op.make(env_name_train if filter_chronics is None else ENV_NAME)            
+    param = env_tmp.parameters
+    param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
+    
+    # determine how many agent will be trained
+    nb_train = args.nb_training
+    if nb_train == -1:
+        nb_train = int(np.iinfo(np.int64).max)
+    
+    # prepare the real training environment
+    env_train = grid2op.make(env_name_train if filter_chronics is None else ENV_NAME,
+                             reward_class=CustomReward,
+                             backend=LightSimBackend(),
+                             chronics_class=MultifolderWithCache,
+                             param=param)
+    if filter_chronics is not None:
+        env_train.chronics_handler.real_data.set_filter(filter_chronics)
     else:
-        raise e
-
-# %%
-# Learn parameters PPO
-train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute_of_hour",
-                                  "gen_p", "load_p", 
-                                  "p_or", "rho", "timestep_overflow", "line_status",
-                                  # dispatch part of the observation
-                                  "actual_dispatch", "target_dispatch",
-                                  # storage part of the observation
-                                  "storage_charge", "storage_power",
-                                  # curtailment part of the observation
-                                  "curtailment", "curtailment_limit",  "gen_p_before_curtail",
-                                  ]
-train_args["act_attr_to_keep"] = ["curtail", "set_storage"]
-train_args["iterations"] = 10_000_000
-train_args["learning_rate"] = 3e-6 # 3e-4
-train_args["net_arch"] = [300, 300, 300] # [200, 200, 200, 200]
-train_args["gamma"] = 0.999
-train_args["gymenv_kwargs"] = {"safe_max_rho": 0.9} # {"safe_max_rho": 0.9}
-train_args["normalize_act"] = True
-train_args["normalize_obs"] = True
-
-train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 100_000)
-
-train_args["n_steps"] = 16 # 256
-train_args["batch_size"] = 16 # 64
-
-
-# %%
-p = Parameters()
-p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
-
-env_train = grid2op.make(env_name_train if filter_chronics is None else ENV_NAME,
-                   reward_class=CustomReward2,
-                   backend=LightSimBackend(),
-                   chronics_class=MultifolderWithCache,
-                   param=p)
-
-if filter_chronics is not None:
-    env_train.chronics_handler.real_data.set_filter(filter_chronics)
+        env_train.chronics_handler.real_data.set_filter(lambda x: True)
+    # do not forget to load all the data in memory !
     env_train.chronics_handler.real_data.reset()
-
-# def lr_fun(x_left):
-#     x = 1 - x_left
-#     if x <= 0.5:
-#         lr = 1e-3 + (1e-6 - 1e-3) * x / 0.5
-#     else :
-#         lr = 1e-6
-#     return lr
-
-# values_to_test = np.array([3e-6, lr_fun])
-values_to_test = np.array([1e-6])
-var_to_test = "learning_rate"
-
-# values_to_test = [train_args["gymenv_kwargs"]]
-# var_to_test = "gymenv_kwargs"
-agent = train_agent(env_train, train_args)
-
-# %%
-# env_name_val = '_'.join([ENV_NAME, "val"])
-# for i, (agent_name, _) in enumerate(agents):
-#     results = eval_agent(env_name_val, #ENV_NAME
-#             4,
-#             agent_name,
-#             save_path,
-#             SCOREUSED,
-#             gymenv_class,
-#             verbose,
-#             gymenv_kwargs=train_args["gymenv_kwargs"] if var_to_test!="gymenv_kwargs" else values_to_test[i],
-#             param=p,
-#             filter_fun=filter_chronics)
-#     print(results)
-
-# %%
+    
+    # now do the loop to train the agents
+    for _ in range(nb_train):
+        if int(args.seed) >= 0:
+            env_train.seed(args.seed)
+        # reset the env to have everything "correct"
+        env_train.reset()
+        # shuffle the order of the chronics
+        env_train.chronics_handler.shuffle()
+        # reset the env to have everything "correct"
+        env_train.reset()
+        
+        # assign a unique name
+        agent_name = f"{args.agent_name}_{datetime.datetime.now():%Y-%m-%d_%H-%M}"
+        train_args["name"] = agent_name
+        
+        values_to_test = np.array([float(args.lr)])
+        var_to_test = "learning_rate"
+        agent = train_agent(env_train, train_args)
