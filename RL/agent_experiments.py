@@ -19,7 +19,8 @@ from utils import *
 # from CustomGymEnv import CustomGymEnv
 
 
-from examples.ppo_stable_baselines.B_train_agent import CustomReward
+#from examples.ppo_stable_baselines.B_train_agent import CustomReward
+from grid2op.Reward import EpisodeDurationReward
 
 from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
 
@@ -150,7 +151,7 @@ if __name__ == "__main__":
     
     # prepare the real training environment
     env_train = grid2op.make(env_name_train if filter_chronics is None else ENV_NAME,
-                             reward_class=CustomReward,
+                             reward_class=EpisodeDurationReward,
                              backend=LightSimBackend(),
                              chronics_class=MultifolderWithCache,
                              param=param)
