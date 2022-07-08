@@ -165,4 +165,4 @@ if __name__ == "__main__":
         
         values_to_test = np.array([float(args.lr)])
         var_to_test = "learning_rate"
-        agent = train_agent(env_train, train_args)
+        agents = iter_hyperparameters(env_train, train_args, agent_name, var_to_test, values_to_test)
