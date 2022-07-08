@@ -1,6 +1,6 @@
 import numpy as np
 import grid2op
-from collections.abc import Iterable
+from typing import List, Any
 from l2rpn_baselines.PPO_SB3 import train
 from grid2op.Agent import RecoPowerlineAgent
 from grid2op.utils import EpisodeStatistics
@@ -20,7 +20,8 @@ from examples.ppo_stable_baselines.A_prep_env import get_env_seed
 from examples.ppo_stable_baselines.C_evaluate_trained_model import get_ts_survived_dn, get_ts_survived_reco, load_agent
 
 
-def split_train_val_test_sets(env, deep_copy):
+def split_train_val_test_sets(ENV_NAME: str, deep_copy):
+  env = grid2op.make(ENV_NAME, backend=LightSimBackend())
   env.seed(1)
   env.reset()
   return env.train_val_split_random(add_for_test="test",
@@ -145,7 +146,7 @@ def iter_hyperparameters(env,
                          train_args:dict,
                          name:str,
                          hyperparam_name:str,
-                         hyperparam_values: Iterable,
+                         hyperparam_values: List[Any],
                          max_iter:int = None):
   """
   For each value v contained in `hyperparam_values`, this function

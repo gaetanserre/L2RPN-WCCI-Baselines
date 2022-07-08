@@ -2,6 +2,8 @@ from l2rpn_baselines.utils import GymEnvWithHeuristics
 from typing import List
 from grid2op.Action import BaseAction
 import numpy as np
+from grid2op.Chronics.multiFolder import Multifolder
+
 
 class CustomGymEnv(GymEnvWithHeuristics):
   """This environment is slightly more complex that the other one.
@@ -24,6 +26,7 @@ class CustomGymEnv(GymEnvWithHeuristics):
     super().__init__(env_init, reward_cumul=reward_cumul, *args, **kwargs)
     self._safe_max_rho = safe_max_rho
     self.dn = self.init_env.action_space({})
+    self.nb_reset = 0
         
   def heuristic_actions(self, g2op_obs, reward, done, info) -> List[BaseAction]:
     """To match the description of the environment, this heuristic will:
@@ -54,51 +57,21 @@ class CustomGymEnv(GymEnvWithHeuristics):
       res = [self.init_env.action_space()]
     return res
 
-  def step(self, gym_action):
-    """This function implements the special case of the "step" function (as seen by the "gym environment") that might
-    call multiple times the "step" function of the underlying "grid2op environment" depending on the
-    heuristic.
-
-    It takes a gym action, convert it to a grid2op action (thanks to the action space) and
-    simulates if this action is better than doing nothing. If so, it performs the action otherwise
-    it performs the "do nothing" action.
-
-    Then process the heuristics / expert rules / forced actions / etc. and return the next gym observation that will
-    be processed by the agent.
-
-    The number of "grid2op steps" can vary between different "gym environment" call to "step".
-
-    It has the same signature as the `gym.Env` "step" function, of course. 
-
-    Parameters
-    ----------
-    gym_action :
-        the action (represented as a gym one) that the agent wants to perform.
-
-    Returns
-    -------
-    gym_obs:
-        The gym observation that will be processed by the agent
-        
-    reward: ``float``
-        The reward of the agent (that might be computed by the )
-        
-    done: ``bool``
-        Whether the episode is over or not
-        
-    info: Dict
-        Other type of informations
-        
-    """
-    g2op_act = self.action_space.from_gym(gym_action)
-
-    _, sim_reward_act, _, _ = self.init_env.simulate(g2op_act)
-    _, sim_reward_dn, _, _ = self.init_env.simulate(self.dn)
-    if sim_reward_dn > sim_reward_act:
-      g2op_act = self.dn
-
-    g2op_obs, reward, done, info = self.init_env.step(g2op_act)
-    if not done:
-      g2op_obs, reward, done, info = self.apply_heuristics_actions(g2op_obs, reward, done, info)
-    gym_obs = self.observation_space.to_gym(g2op_obs)
-    return gym_obs, float(reward), done, info
+  def reset(self, seed=None, return_info=False, options=None):
+    # shuffle the chronics from time to time (to change the order in which they are 
+    # seen by the agent)
+    if isinstance(self.init_env.chronics_handler.real_data, Multifolder):
+      nb_chron = len(self.init_env.chronics_handler.real_data._order)
+      if self.nb_reset % nb_chron == 1:
+        self.init_env.chronics_handler.reset()
+    return super().reset(seed, return_info, options)
+  
+  def fix_action(self, grid2op_action):
+    # chose the best actio between do nothing and the proposed action
+    _, sim_reward_act, _, _ = self.init_env.simulate(grid2op_action, 0)
+    _, sim_reward_dn, _, _ = self.init_env.simulate(self.dn, 0)
+    if sim_reward_dn >= sim_reward_act:
+      res = self.dn
+    else:
+      res = grid2op_action
+    return res
