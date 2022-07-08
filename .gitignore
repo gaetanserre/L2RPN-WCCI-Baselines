@@ -1,6 +1,5 @@
-
 .DS_Store
-__pycache__/
+__pycache__
 
 output_agents
 RL/saved_model
@@ -14,3 +13,11 @@ RL/model_results
 RL/pre_train/expert_data/
 RL/pre_train/student/
 RL/pre_train/total_results/
+test.py
+RL/logs/
+study_rl_agent
+RL/studies/output_agents_no_overflow/DoNothingAgent
+script
+local_logs/
+PPO_tests/exps
+PPO_tests/logs

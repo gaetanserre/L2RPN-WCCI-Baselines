@@ -13,8 +13,11 @@ import grid2op
 from grid2op.utils import ScoreL2RPN2022
 from grid2op.Agent import RecoPowerlineAgent
 
+<<<<<<< HEAD
 from lightsim2grid import LightSimBackend
 
+=======
+>>>>>>> origin/main
 from l2rpn_baselines.PPO_SB3 import evaluate
 
 from .A_prep_env import _aux_get_env, get_env_seed, name_stats
@@ -23,8 +26,15 @@ from .B_train_agent import gymenv_class, name, safe_max_rho
 # and use a different parameter for evaluation than the one used for 
 # training.
 
+<<<<<<< HEAD
 env_name = "l2rpn_wcci_2022_val"
 SCOREUSED = ScoreL2RPN2022
+=======
+env_name = "l2rpn_icaps_2021_small_val"
+env_name = "l2rpn_wcci_2022_dev_val"
+env_name = "wcci_2022_dev_val"
+SCOREUSED = ScoreL2RPN2020  # ScoreICAPS2021
+>>>>>>> origin/main
 
 agent_name = name
 nb_scenario = 10
@@ -51,7 +61,7 @@ def load_agent(env, load_path, name,
     return trained_agent
 
 
-def get_ts_survived_dn(env_name, nb_scenario):
+def get_ts_survived_dn(env_name):
     dict_ = _aux_get_env(env_name, dn=True)
     res = []
     for kk in range(nb_scenario):
@@ -61,7 +71,7 @@ def get_ts_survived_dn(env_name, nb_scenario):
     res -= 1  # the first observation (after reset) is counted as a step in the runner
     return res
 
-def get_ts_survived_reco(env_name, nb_scenario):
+def get_ts_survived_reco(env_name):
     dict_ = _aux_get_env(env_name, name_stat=name_stats)
     res = []
     for kk in range(nb_scenario):
@@ -100,12 +110,16 @@ if __name__ == "__main__":
                           gymenv_class=gymenv_class,
                           obs_space_kwargs=obs_space_kwargs,
                           act_space_kwargs=act_space_kwargs)
+<<<<<<< HEAD
     scores_r, n_played_r, total_ts_r = my_score.get(RecoPowerlineAgent(env_val.action_space))
     scores, n_played, total_ts = my_score.get(my_agent)
     
     res_scores = {"scores": [float(score) for score in scores],
                   "n_played": [int(el) for el in n_played],
                   "total_ts": [int(el) for el in total_ts]}
+=======
+    _, ts_survived, _ = my_score.get(my_agent)
+>>>>>>> origin/main
     
     # compare with do nothing
     best_than_dn = 0

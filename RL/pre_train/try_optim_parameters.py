@@ -7,7 +7,7 @@ import os
 import grid2op
 from l2rpn_baselines.OptimCVXPY import OptimCVXPY
 from lightsim2grid import LightSimBackend
-from grid2op.utils import ScoreL2RPN2020
+from grid2op.utils import ScoreL2RPN2022
 import numpy as np
 from utils import *
 from tqdm import tqdm
@@ -19,11 +19,11 @@ import torch
 
 torch.cuda.set_device(2)
 
-os.chdir('/home/boguslawskieva/L2RPN-WCCI-Baselines/RL')
+os.chdir("..")
 
 save_path = "./saved_model/"
 ENV_NAME = "l2rpn_wcci_2022_dev_val"
-SCOREUSED = ScoreL2RPN2020
+SCOREUSED = ScoreL2RPN2022
 verbose = False
 p = Parameters()
 p.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True

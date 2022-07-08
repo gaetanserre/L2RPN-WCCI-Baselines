@@ -9,7 +9,7 @@ from grid2op.Parameters import Parameters
 from examples.ppo_stable_baselines.B_train_agent import CustomReward
 from lightsim2grid import LightSimBackend
 from grid2op.Chronics import MultifolderWithCache
-from grid2op.utils import ScoreL2RPN2020
+from grid2op.utils import ScoreL2RPN2022
 from examples.ppo_stable_baselines.A_prep_env import get_env_seed
 import numpy as np
 from datetime import datetime
@@ -55,8 +55,6 @@ from l2rpn_baselines.PPO_SB3.utils import (default_obs_attr_to_keep,
 from torch.utils.data.dataset import Dataset, random_split
 import torch.nn as nn
 import torch
-
-os.chdir('/home/boguslawskieva/L2RPN-WCCI-Baselines/RL/pre_train')
 
 def get_agent(env,
           name="PPO_SB3",
@@ -347,7 +345,7 @@ if __name__ == "__main__":
     # gymenv_class = CustomGymEnv
     name = "GymEnvWithRecoWithDN_student_{}".format(datetime_now)
     gymenv_class = GymEnvWithRecoWithDN # CustomGymEnv
-    SCOREUSED = ScoreL2RPN2020
+    SCOREUSED = ScoreL2RPN2022
 
     train_args = {}
 
@@ -405,7 +403,7 @@ if __name__ == "__main__":
     ## Preparation of datasets
     # data = np.load("expert_data/expert_data_2022-06-03_17-29.npz", allow_pickle=True)
     data = np.load("expert_data/expert_data_2022-06-13_20-12.npz", allow_pickle=True)
-    expert_flag      = data.get("expert_flag")
+    expert_flag         = data.get("expert_flag")
     expert_observations = to_gym_obss(gym_env, data.get("expert_observations"))
     # expert_actions      = to_gym_acts(gym_env, data.get("expert_actions"))
     expert_actions      = data.get("expert_gym_actions")
