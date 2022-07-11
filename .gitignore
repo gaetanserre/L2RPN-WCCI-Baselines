@@ -13,3 +13,6 @@ script
 local_logs/
 PPO_tests/exps
 PPO_tests/logs
+ingestion_program_val
+input_data_val
+RL/agents_runs\ (copie).json

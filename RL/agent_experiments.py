@@ -1,4 +1,3 @@
-from dataclasses import replace
 import warnings
 import torch
 import datetime
@@ -22,6 +21,9 @@ from utils import *
 from examples.ppo_stable_baselines.B_train_agent import CustomReward
 
 from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
+
+
+ENV_NAME = "l2rpn_wcci_2022"
 
 
 def cli():
@@ -58,9 +60,9 @@ def cli():
     return parser.parse_args()
 
 
-if __name__ == "__main__":
-    args = cli()
+def check_cuda(args):
     use_cuda = int(args.has_cuda) >= 1
+    
     if use_cuda >= 1:
         assert torch.cuda.is_available(), "cuda is not available on your machine with pytorch"
         torch.cuda.set_device(int(args.cuda_device))
@@ -69,10 +71,13 @@ if __name__ == "__main__":
         if int(args.cuda_device) != 0:
             warnings.warn("You specified to use a cuda_device (\"--cuda_device = XXX\") yet you tell the program not to use cuda (\"--has_cuda = 0\"). "
                           "This program will ignore the \"--cuda_device = XXX\" directive.")
-        
-    ENV_NAME = "l2rpn_wcci_2022"
-    # ENV_NAME = "l2rpn_wcci_2022_dev"
-
+    return use_cuda        
+            
+            
+if __name__ == "__main__":
+    args = cli()
+    use_cuda = check_cuda(args)
+    
     # Split sets and statistics parameters
     is_windows = sys.platform.startswith("win32")
     is_windows_or_darwin = sys.platform.startswith("win32") or sys.platform.startswith("darwin")
