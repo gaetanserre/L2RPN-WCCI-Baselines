@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import re
+import copy
 import numpy as np
 from tqdm import tqdm
 from lightsim2grid import LightSimBackend
@@ -25,9 +26,11 @@ DEFAULT_LIMIT_CS_MARGINS = 150.
 # first run to find the best agent (on validation set)
 # python3 run_trained_agents.py --has_cuda=0 --expe_name first_eval
 # second run: find the best safe_max_rho for this agent
-# python3 run_trained_agents.py --has_cuda=0 --safe_max_rho 0.8 0.85 0.9 0.95 1.0 1.05 1.1 --expe_name calibrate_safe_max_rho_eval --agent_name="GymEnvWithRecoWithDN_20220708_145319"
+# python3 run_trained_agents.py --has_cuda=0 --safe_max_rho 0.6 0.65 0.7 0.75 0.8 0.85 0.9 0.95 1.0 1.05 1.1 --expe_name safe_max_rho_eval --agent_name="PPO_agent0_20220709_152030"
 # third run: find the best limit_cs_margin for this agent
-# python3 run_trained_agents.py --has_cuda=0 -safe_max_rho AAAA --limit_cs_margin 0. 1. 10. 100. 125. 150. 175. 200. 300. --expe_name calibrate_limit_cs_margin_eval --agent_name="GymEnvWithRecoWithDN_20220708_145319"
+# python3 run_trained_agents.py --has_cuda=0 --safe_max_rho AAAA --limit_cs_margin 0. 1. 10. 100. 125. 150. 175. 200. 300. --expe_name limit_cs_margin_eval --agent_name="gaetan_PPO_agent0_20220709_152030"
+# fourth run to find the best agent (on validation set)
+# python3 run_trained_agents.py --has_cuda=0 --expe_name second_eval
 
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline PPO")
@@ -118,22 +121,6 @@ def get_agent(submission_dir, agent_dir, weights_dir, env, safe_max_rho, limit_c
                                       attr_to_keep=act_attr_to_keep,
                                       **act_space_kwargs)
     
-    # if os.path.exists(os.path.join(agent_dir, ".normalize_act")):
-    #     for attr_nm in act_attr_to_keep:
-    #         if (("multiply" in act_space_kwargs and attr_nm in act_space_kwargs["multiply"]) or 
-    #             ("add" in act_space_kwargs and attr_nm in act_space_kwargs["add"]) 
-    #            ):
-    #             continue
-    #         gym_action_space.normalize_attr(attr_nm)
-
-    # if os.path.exists(os.path.join(agent_dir, ".normalize_obs")):
-    #     for attr_nm in obs_attr_to_keep:
-    #         if (("divide" in obs_space_kwargs and attr_nm in obs_space_kwargs["divide"]) or 
-    #             ("subtract" in obs_space_kwargs and attr_nm in obs_space_kwargs["subtract"]) 
-    #            ):
-    #             continue
-    #         gym_observation_space.normalize_attr(attr_nm)
-    
     # create the gym environment for the PPO agent...
     gymenv = GymEnvWithRecoWithDNWithShuffle(env, safe_max_rho=float(safe_max_rho))    
     gymenv.action_space.close()
@@ -181,18 +168,20 @@ if __name__ == "__main__":
     if args.safe_max_rho is None:
         safe_max_rhos = [DEFAULT_SAFE_MAX_RHO]
     else:
-        safe_max_rhos = args.safe_max_rho
+        safe_max_rhos = copy.deepcopy(args.safe_max_rho)
     
     if args.training_iter is None:
         training_iters = [DEFAULT_TRAINING_ITER]
     else:
-        training_iters = args.training_iter
+        training_iters = copy.deepcopy(args.training_iter)
     
     if args.limit_cs_margin is None:
         limit_cs_margins = [DEFAULT_LIMIT_CS_MARGINS]
     else:
-        limit_cs_margins = args.limit_cs_margin
-        
+        limit_cs_margins = copy.deepcopy(args.limit_cs_margin)
+    
+    tested_agent_names = copy.deepcopy(args.agent_name)
+    
     for safe_max_rho_ in tqdm(safe_max_rhos):    
         safe_max_rho = float(safe_max_rho_)
         safe_max_rho_str = safe_max_rho_
@@ -215,11 +204,12 @@ if __name__ == "__main__":
                     if not os.path.isdir(submission_dir):
                         # it is a regular file, we don't try to use it
                         continue
+                    
                     for name in tqdm(sorted(os.listdir(submission_dir))):
-                        if args.agent_name is not None:
+                        if tested_agent_names is not None:
                             # I this case I search if the possible agent name matches the one the user wants to keep
                             is_in = False
-                            for el in args.agent_name:
+                            for el in tested_agent_names:
                                 if re.search(f"{el}", name) is not None:
                                     # ignore the agents that do not have the right name
                                     is_in = True
