@@ -28,9 +28,9 @@ DEFAULT_LIMIT_CS_MARGINS = 150.
 # second run: find the best safe_max_rho for this agent
 # python3 run_trained_agents.py --has_cuda=0 --safe_max_rho 0.6 0.65 0.7 0.75 0.8 0.85 0.9 0.95 1.0 1.05 1.1 --expe_name safe_max_rho_eval --agent_name="PPO_agent0_20220709_152030"
 # third run: find the best limit_cs_margin for this agent
-# python3 run_trained_agents.py --has_cuda=0 --safe_max_rho AAAA --limit_cs_margin 0. 1. 10. 100. 125. 150. 175. 200. 300. --expe_name limit_cs_margin_eval --agent_name="gaetan_PPO_agent0_20220709_152030"
+# python3 run_trained_agents.py --has_cuda=0 --safe_max_rho 0.95 --limit_cs_margin 0. 1. 10. 50. 100. 125. 150. 175. 200. 250. 300. --expe_name limit_cs_margin_eval --agent_name="PPO_agent0_20220709_152030"
 # fourth run to find the best agent (on validation set)
-# python3 run_trained_agents.py --has_cuda=0 --expe_name second_eval
+# python3 run_trained_agents.py --has_cuda=0 --safe_max_rho 0.95 --limit_cs_margin AAA --expe_name second_eval
 
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline PPO")
