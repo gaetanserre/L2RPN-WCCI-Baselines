@@ -193,12 +193,5 @@ if __name__ == "__main__":
         # assign a unique name
         agent_name = f"{args.agent_name}_{datetime.datetime.now():%Y%m%d_%H%M%S}"
         train_args["name"] = agent_name
-        
-        values_to_test = np.array([float(args.lr)])
-        var_to_test = "learning_rate"
-        agents = iter_hyperparameters(env_train,
-                                      train_args,
-                                      agent_name,
-                                      var_to_test,
-                                      values_to_test,
-                                      other_meta_params={"ratio_keep_chronics":  float(args.ratio_keep_chronics)})
+
+        agent = train_agent(env_train, train_args)

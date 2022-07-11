@@ -16,3 +16,5 @@ PPO_tests/logs
 ingestion_program_val
 input_data_val
 RL/agents_runs\ (copie).json
+ingestion_program_test
+input_data_test
