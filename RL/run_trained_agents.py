@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import re
 import numpy as np
 from tqdm import tqdm
 from lightsim2grid import LightSimBackend
@@ -16,6 +17,17 @@ from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
 
 from agent_experiments import ENV_NAME, check_cuda
 
+DEFAULT_SAFE_MAX_RHO = 0.9
+DEFAULT_TRAINING_ITER = 10_000_000
+DEFAULT_LIMIT_CS_MARGINS = 150.
+
+# usage
+# first run to find the best agent (on validation set)
+# python3 run_trained_agents.py --has_cuda=0 --expe_name first_eval
+# second run: find the best safe_max_rho for this agent
+# python3 run_trained_agents.py --has_cuda=0 --safe_max_rho 0.8 0.9 0.95 1.0 1.05 1.1 --expe_name calibrate_safe_max_rho_eval --agent_name="GymEnvWithRecoWithDN_XXX_YYY"
+# third run: find the best limit_cs_margin for this agent
+# python3 run_trained_agents.py --has_cuda=0 -safe_max_rho AAAA --limit_cs_margin 0. 1. 3. 10. 30. 100. 150. 300. --expe_name calibrate_limit_cs_margin_eval --agent_name="GymEnvWithRecoWithDN_XXX_YYY"
 
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline PPO")
@@ -25,11 +37,20 @@ def cli():
     parser.add_argument("--cuda_device", default=0, type=int,
                         help="Which cuda device to use for pytorch (only used if you want to use cuda)")
     
-    parser.add_argument("--safe_max_rho", default=0.9, type=float,
-                        help="safe_max_rho to use for evaluation (default 0.9)")
+    parser.add_argument("--safe_max_rho",
+                        nargs='+',
+                        help=(f"safe_max_rho to use for evaluation (default {DEFAULT_SAFE_MAX_RHO}). "
+                              "You can add more than one."))
     
-    parser.add_argument("--training_iter", default=10_000_000, type=int,
-                        help="At which training iteration you want to load the agents ?")
+    parser.add_argument("--training_iter",
+                        nargs='+',
+                        help=(f"At which training iteration you want to load the agents ? (default "
+                              f"{DEFAULT_TRAINING_ITER}). You can add more than one."))
+    
+    parser.add_argument("--limit_cs_margin", 
+                        nargs='+',
+                        help=(f"The margin used in `action.limit_curtail_storage(..., margin=XXX)` "
+                              f"in the agent (default {DEFAULT_LIMIT_CS_MARGINS}). You can add more than one."))
     
     parser.add_argument("--agent_name", default="GymEnvWithRecoWithDN", type=str,
                         help="Name for your agent, default 'GymEnvWithRecoWithDN'")
@@ -49,9 +70,9 @@ def cli():
                         help=("Path where the agents are stored. They are in the format `path_agents/A_DIRECTORY/AGENTS` "
                               "(ie in a sub directory of the path_agents argument)"))
     
-    parser.add_argument("--limit_cs_margin", default=150.,
-                        type=float,
-                        help=("The margin used in `action.limit_curtail_storage(..., margin=XXX)` in the agent"))
+    parser.add_argument("--expe_name", default="safe_max_rho",
+                        type=str,
+                        help=("Name to use for the experiment when saving the json data. Json will be saved in agents_runs_EXPE_NAME.json"))
     
     return parser.parse_args()
 
@@ -152,42 +173,71 @@ if __name__ == "__main__":
                                max_step=-1,
                                nb_process_stats=1)
     
-    safe_max_rho = float(args.safe_max_rho)
-    training_iter = int(args.training_iter)
-    limit_cs_margin = float(args.limit_cs_margin)
+    # safe_max_rho = float(args.safe_max_rho)
+    # training_iter = int(args.training_iter)
+    # limit_cs_margin = float(args.limit_cs_margin)
     res = {}
     
-    safe_max_rho_str = f"{safe_max_rho:.4f}"
-    res[safe_max_rho_str] = {}
+    if args.safe_max_rho is None:
+        safe_max_rhos = [DEFAULT_SAFE_MAX_RHO]
+    else:
+        safe_max_rhos = args.safe_max_rho
     
-    training_iter_str = f"{training_iter}"
-    res[safe_max_rho_str][training_iter_str] = {}
+    if args.training_iter is None:
+        training_iters = [DEFAULT_TRAINING_ITER]
+    else:
+        training_iters = args.training_iter
     
-    limit_cs_margin_str = f"{limit_cs_margin:.2f}"
-    res[safe_max_rho_str][training_iter_str][limit_cs_margin_str] = {}
-    # loop for all agents
-    root_dir = os.path.abspath(args.path_agents)
-    for machine_dir in tqdm(os.listdir(root_dir)):
-        submission_dir  = os.path.join(root_dir, machine_dir)
-        for name in tqdm(os.listdir(submission_dir)):
-            agent_dir = os.path.join(submission_dir, name)
-            weights_dir = os.path.join(agent_dir, f"{name}_{training_iter}_steps.zip")
-            if os.path.exists(weights_dir):
-                # I got a valid agent !
-                agent_to_evaluate = get_agent(submission_dir, agent_dir, weights_dir, env, safe_max_rho)
-                scores, n_played, total_ts = score_fun.get(agent_to_evaluate,
-                                                           # path_save=path_save,  # TODO
-                                                           nb_process=1)
-                
-                weights_dir_str = f"{weights_dir}"
-                this_run = {"score_avg": float(np.mean(scores)),
-                            "scores": [float(el) for el in scores], 
-                            "score_std": float(np.std(scores)),
-                            "min": float(np.min(scores)),
-                            "max": float(np.max(scores)),
-                            "n_played": [int(el) for el in n_played], 
-                            "total_ts": [int(el) for el in total_ts]
-                            }
-                res[safe_max_rho_str][training_iter_str][limit_cs_margin_str][weights_dir_str] = this_run
-                with open("agents_runs.json", "w", encoding="utf-8") as f:
-                    json.dump(obj=res, fp=f)
+    if args.limit_cs_margin is None:
+        limit_cs_margins = [DEFAULT_TRAINING_ITER]
+    else:
+        limit_cs_margins = args.limit_cs_margin
+        
+    for safe_max_rho_ in tqdm(safe_max_rhos):    
+        safe_max_rho = float(safe_max_rho_)
+        safe_max_rho_str = safe_max_rho_
+        res[safe_max_rho_str] = {}
+        
+        for limit_cs_margin_ in tqdm(limit_cs_margins):
+            limit_cs_margin = float(limit_cs_margin_)
+            limit_cs_margin_str = limit_cs_margin_
+            res[safe_max_rho_str][limit_cs_margin_str] = {}
+                        
+            for training_iter_ in tqdm(training_iters):
+                training_iter = int(training_iter_)
+                training_iter_str = training_iter_
+                res[safe_max_rho_str][limit_cs_margin_str][training_iter_str] = {}
+            
+                # loop for all agents
+                root_dir = os.path.abspath(args.path_agents)
+                for machine_dir in tqdm(os.listdir(root_dir)):
+                    submission_dir  = os.path.join(root_dir, machine_dir)
+                    for name in tqdm(os.listdir(submission_dir)):
+                        if re.search(f"{args.agent_name}", name) is None:
+                            # ignore the agents that do not have the right name
+                            continue
+                        
+                        agent_dir = os.path.join(submission_dir, name)
+                        weights_dir = os.path.join(agent_dir, f"{name}_{training_iter}_steps.zip")
+                        if os.path.exists(weights_dir):
+                            # I got a valid agent !
+                            agent_to_evaluate = get_agent(submission_dir, agent_dir, weights_dir, env, safe_max_rho, limit_cs_margin)
+                            scores, n_played, total_ts = score_fun.get(agent_to_evaluate,
+                                                                       # path_save=path_save,  # TODO
+                                                                       nb_process=1)
+                            
+                            weights_dir_str = f"{weights_dir}"
+                            this_run = {"score_avg": float(np.mean(scores)),
+                                        "scores": [float(el) for el in scores], 
+                                        "score_std": float(np.std(scores)),
+                                        "min": float(np.min(scores)),
+                                        "max": float(np.max(scores)),
+                                        "n_played": [int(el) for el in n_played], 
+                                        "total_ts": [int(el) for el in total_ts]
+                                        }
+                            res[safe_max_rho_str][limit_cs_margin_str][training_iter_str][weights_dir_str] = this_run
+                            with open(f"agents_runs_{args.expe_name}.json", "w", encoding="utf-8") as f:
+                                json.dump(obj=res, fp=f)
+                                
+    with open(f"agents_runs_{args.expe_name}.json", "w", encoding="utf-8") as f:
+        json.dump(obj=res, fp=f)
