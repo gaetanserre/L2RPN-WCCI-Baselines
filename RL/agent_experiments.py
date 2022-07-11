@@ -1,9 +1,11 @@
+import pdb
 import warnings
 import torch
 import datetime
 import sys
 import re
 import os
+import copy
 import argparse
 import numpy as np
 
@@ -57,6 +59,10 @@ def cli():
                         help=("Faction of the training set to keep for training. Chronics will be re sampled for each agents. Note that each agent "
                               "will see different chronics (sampling is done for each agent)")
                         )
+    
+    parser.add_argument("--chronics_name",
+                        nargs='+',
+                        help="Chronics to use for training")
     
     return parser.parse_args()
 
@@ -120,7 +126,7 @@ if __name__ == "__main__":
     train_args["gymenv_kwargs"] = {"safe_max_rho": float(args.safe_max_rho)}
     train_args["normalize_act"] = True
     train_args["normalize_obs"] = True
-    train_args["save_every_xxx_steps"] = min(max(train_args["iterations"]//10, 1), 500_000)
+    train_args["save_every_xxx_steps"] = min(max(train_args["iterations"]//10, 1), 1_000_000)
     train_args["n_steps"] = 16 # 256
     train_args["batch_size"] = 16 # 64
     train_args["learning_rate"] =  float(args.lr)
@@ -160,19 +166,30 @@ if __name__ == "__main__":
                              backend=LightSimBackend(),
                              chronics_class=MultifolderWithCache,
                              param=param)
+    
+    if args.chronics_name is not None:
+        chron_to_keep = copy.deepcopy(args.chronics_name)
+        def filter_chronics(x, li_to_keep=chron_to_keep):
+            res = False
+            for el in li_to_keep:
+                if re.search(el, x) is not None:
+                    res = True
+                    break
+            return res
+        
     if filter_chronics is not None:
         env_train.chronics_handler.real_data.set_filter(filter_chronics)
     else:
         env_train.chronics_handler.real_data.set_filter(lambda x: True)
         
     # do not forget to load all the data in memory !
-    if float(args.ratio_keep_chronics) >= 1.:
+    if float(args.ratio_keep_chronics) >= 1. or args.chronics_name is not None:
         # otherwise it's reset for each agent
         env_train.chronics_handler.real_data.reset()
-    
+
     # now do the loop to train the agents
     for _ in range(nb_train):
-        if float(args.ratio_keep_chronics) < 1.:
+        if float(args.ratio_keep_chronics) < 1. and args.chronics_name is None:
             # TODO reproductibility !
             ID_TO_KEEP = set(np.random.choice(all_data, size=size_, replace=False))
             def filter_chronics(nm, to_keep=ID_TO_KEEP):
