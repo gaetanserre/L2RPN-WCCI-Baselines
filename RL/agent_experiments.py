@@ -12,7 +12,7 @@ from lightsim2grid import LightSimBackend
 
 import grid2op
 from grid2op.Chronics import MultifolderWithCache
-from grid2op.utils import ScoreL2RPN2022, ScoreL2RPN2020
+from grid2op.utils import ScoreL2RPN2022
 # from l2rpn_baselines.utils import GymEnvWithRecoWithDN
 
 from utils import *
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     nb_process_stats = 8 if not is_windows_or_darwin else 1
     deep_copy = is_windows  # force the deep copy on windows (due to permission issue in symlink in windows)
     verbose = 1
-    SCOREUSED = ScoreL2RPN2020  # ScoreICAPS2021
+    SCOREUSED = ScoreL2RPN2022  # ScoreICAPS2021
     name_stats = "_reco_powerline"
 
     # save / load information (NB agent name is defined later)
