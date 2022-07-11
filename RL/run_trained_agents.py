@@ -25,9 +25,9 @@ DEFAULT_LIMIT_CS_MARGINS = 150.
 # first run to find the best agent (on validation set)
 # python3 run_trained_agents.py --has_cuda=0 --expe_name first_eval
 # second run: find the best safe_max_rho for this agent
-# python3 run_trained_agents.py --has_cuda=0 --safe_max_rho 0.8 0.9 0.95 1.0 1.05 1.1 --expe_name calibrate_safe_max_rho_eval --agent_name="GymEnvWithRecoWithDN_XXX_YYY"
+# python3 run_trained_agents.py --has_cuda=0 --safe_max_rho 0.8 0.85 0.9 0.95 1.0 1.05 1.1 --expe_name calibrate_safe_max_rho_eval --agent_name="GymEnvWithRecoWithDN_20220708_145319"
 # third run: find the best limit_cs_margin for this agent
-# python3 run_trained_agents.py --has_cuda=0 -safe_max_rho AAAA --limit_cs_margin 0. 1. 3. 10. 30. 100. 150. 300. --expe_name calibrate_limit_cs_margin_eval --agent_name="GymEnvWithRecoWithDN_XXX_YYY"
+# python3 run_trained_agents.py --has_cuda=0 -safe_max_rho AAAA --limit_cs_margin 0. 1. 10. 100. 125. 150. 175. 200. 300. --expe_name calibrate_limit_cs_margin_eval --agent_name="GymEnvWithRecoWithDN_20220708_145319"
 
 def cli():
     parser = argparse.ArgumentParser(description="Train baseline PPO")
@@ -52,8 +52,9 @@ def cli():
                         help=(f"The margin used in `action.limit_curtail_storage(..., margin=XXX)` "
                               f"in the agent (default {DEFAULT_LIMIT_CS_MARGINS}). You can add more than one."))
     
-    parser.add_argument("--agent_name", default="GymEnvWithRecoWithDN", type=str,
-                        help="Name for your agent, default 'GymEnvWithRecoWithDN'")
+    parser.add_argument("--agent_name", 
+                        nargs='+',
+                        help=f"Name for the agents you want to study, default to None, meaning 'i take everything'). You can add more than one.")
     
     parser.add_argument("--path_test_set",
                         default="../input_data_val",
@@ -103,7 +104,6 @@ def get_agent(submission_dir, agent_dir, weights_dir, env, safe_max_rho, limit_c
     with open(os.path.join(submission_dir, "preprocess_act.json"), 'r', encoding="utf-8") as f:
         act_space_kwargs = json.load(f)
     
-
     # load the attributes kept
     with open(os.path.join(agent_dir, "obs_attr_to_keep.json"), encoding="utf-8", mode="r") as f:
         obs_attr_to_keep = json.load(fp=f)
@@ -118,21 +118,21 @@ def get_agent(submission_dir, agent_dir, weights_dir, env, safe_max_rho, limit_c
                                       attr_to_keep=act_attr_to_keep,
                                       **act_space_kwargs)
     
-    if os.path.exists(os.path.join(agent_dir, ".normalize_act")):
-        for attr_nm in act_attr_to_keep:
-            if (("multiply" in act_space_kwargs and attr_nm in act_space_kwargs["multiply"]) or 
-                ("add" in act_space_kwargs and attr_nm in act_space_kwargs["add"]) 
-               ):
-                continue
-            gym_action_space.normalize_attr(attr_nm)
+    # if os.path.exists(os.path.join(agent_dir, ".normalize_act")):
+    #     for attr_nm in act_attr_to_keep:
+    #         if (("multiply" in act_space_kwargs and attr_nm in act_space_kwargs["multiply"]) or 
+    #             ("add" in act_space_kwargs and attr_nm in act_space_kwargs["add"]) 
+    #            ):
+    #             continue
+    #         gym_action_space.normalize_attr(attr_nm)
 
-    if os.path.exists(os.path.join(agent_dir, ".normalize_obs")):
-        for attr_nm in obs_attr_to_keep:
-            if (("divide" in obs_space_kwargs and attr_nm in obs_space_kwargs["divide"]) or 
-                ("subtract" in obs_space_kwargs and attr_nm in obs_space_kwargs["subtract"]) 
-               ):
-                continue
-            gym_observation_space.normalize_attr(attr_nm)
+    # if os.path.exists(os.path.join(agent_dir, ".normalize_obs")):
+    #     for attr_nm in obs_attr_to_keep:
+    #         if (("divide" in obs_space_kwargs and attr_nm in obs_space_kwargs["divide"]) or 
+    #             ("subtract" in obs_space_kwargs and attr_nm in obs_space_kwargs["subtract"]) 
+    #            ):
+    #             continue
+    #         gym_observation_space.normalize_attr(attr_nm)
     
     # create the gym environment for the PPO agent...
     gymenv = GymEnvWithRecoWithDNWithShuffle(env, safe_max_rho=float(safe_max_rho))    
@@ -189,7 +189,7 @@ if __name__ == "__main__":
         training_iters = args.training_iter
     
     if args.limit_cs_margin is None:
-        limit_cs_margins = [DEFAULT_TRAINING_ITER]
+        limit_cs_margins = [DEFAULT_LIMIT_CS_MARGINS]
     else:
         limit_cs_margins = args.limit_cs_margin
         
@@ -210,22 +210,41 @@ if __name__ == "__main__":
             
                 # loop for all agents
                 root_dir = os.path.abspath(args.path_agents)
-                for machine_dir in tqdm(os.listdir(root_dir)):
+                for machine_dir in tqdm(sorted(os.listdir(root_dir))):
                     submission_dir  = os.path.join(root_dir, machine_dir)
-                    for name in tqdm(os.listdir(submission_dir)):
-                        if re.search(f"{args.agent_name}", name) is None:
-                            # ignore the agents that do not have the right name
-                            continue
+                    if not os.path.isdir(submission_dir):
+                        # it is a regular file, we don't try to use it
+                        continue
+                    for name in tqdm(sorted(os.listdir(submission_dir))):
+                        if args.agent_name is not None:
+                            # I this case I search if the possible agent name matches the one the user wants to keep
+                            is_in = False
+                            for el in args.agent_name:
+                                if re.search(f"{el}", name) is not None:
+                                    # ignore the agents that do not have the right name
+                                    is_in = True
+                                    break
+                                
+                            if not is_in:
+                                # I skip this name: the user does not want it
+                                continue
                         
                         agent_dir = os.path.join(submission_dir, name)
                         weights_dir = os.path.join(agent_dir, f"{name}_{training_iter}_steps.zip")
                         if os.path.exists(weights_dir):
-                            # I got a valid agent !
-                            agent_to_evaluate = get_agent(submission_dir, agent_dir, weights_dir, env, safe_max_rho, limit_cs_margin)
+                            # I create the agent with the right meta parameter
+                            agent_to_evaluate = get_agent(submission_dir,
+                                                          agent_dir,
+                                                          weights_dir,
+                                                          env,
+                                                          safe_max_rho,
+                                                          limit_cs_margin)
+                            # I evaluate it
                             scores, n_played, total_ts = score_fun.get(agent_to_evaluate,
                                                                        # path_save=path_save,  # TODO
                                                                        nb_process=1)
                             
+                            # I save the score
                             weights_dir_str = f"{weights_dir}"
                             this_run = {"score_avg": float(np.mean(scores)),
                                         "scores": [float(el) for el in scores], 
