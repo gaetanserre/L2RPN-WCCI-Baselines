@@ -211,4 +211,4 @@ if __name__ == "__main__":
         agent_name = f"{args.agent_name}_{datetime.datetime.now():%Y%m%d_%H%M%S}"
         train_args["name"] = agent_name
 
-        agent = train_agent(env_train, train_args)
+        agent = train_agent(env_train, train_args, other_meta_params={"ratio_keep_chronics": float(args.ratio_keep_chronics)})
