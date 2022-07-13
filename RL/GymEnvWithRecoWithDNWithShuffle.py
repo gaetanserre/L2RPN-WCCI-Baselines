@@ -3,7 +3,7 @@ from l2rpn_baselines.utils import GymEnvWithRecoWithDN
 from grid2op.Chronics.multiFolder import Multifolder
 
 class GymEnvWithRecoWithDNWithShuffle(GymEnvWithRecoWithDN):    
-    """this env shuffles the chronics order from time to time"""
+    """this env shuffles the chronics order from time to time. We use it at training time !"""
     def __init__(self, env_init, *args, reward_cumul="init", safe_max_rho=0.9, **kwargs):
         super().__init__(env_init, *args, reward_cumul=reward_cumul, safe_max_rho=safe_max_rho, **kwargs)
         self.nb_reset = 0
