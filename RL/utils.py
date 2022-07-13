@@ -12,6 +12,45 @@ import os
 from grid2op.Parameters import Parameters
 from grid2op.Reward import BaseReward
 from l2rpn_baselines.PPO_SB3 import evaluate
+from stable_baselines3.common.callbacks import BaseCallback
+from typing import Iterable
+
+class SaveIterations(BaseCallback):
+    """
+    Callback for saving a model every ``save_freq`` calls
+    to ``env.step()``.
+
+    .. warning::
+
+      When using multiple environments, each call to  ``env.step()``
+      will effectively correspond to ``n_envs`` steps.
+      To account for that, you can use ``save_freq = max(save_freq // n_envs, 1)``
+
+    :param save_freq:
+    :param save_path: Path to the folder where the model will be saved.
+    :param name_prefix: Common prefix to the saved models
+    :param verbose:
+    """
+
+    def __init__(self, save_freqs: Iterable[int], save_path: str, name_prefix: str = "rl_model", verbose: int = 0):
+        super(SaveIterations, self).__init__(verbose)
+        self.save_freqs = save_freqs
+        self.save_path = save_path
+        self.name_prefix = name_prefix
+
+    def _init_callback(self) -> None:
+        # Create folder if needed
+        if self.save_path is not None:
+            os.makedirs(self.save_path, exist_ok=True)
+
+    def _on_step(self) -> bool:
+        if self.n_calls in self.save_freqs:
+            path = os.path.join(self.save_path, f"{self.name_prefix}_{self.num_timesteps}_steps")
+            self.model.save(path)
+            if self.verbose > 1:
+                print(f"Saving model checkpoint to {path}")
+        return True
+
 
 def _aux_get_env(env_name, dn=True, name_stat=None):
     path_ = grid2op.get_current_local_dir()
@@ -231,9 +270,19 @@ def train_agent(env, train_args:dict, max_iter:int = None, other_meta_params=Non
   with open("./preprocess_act.json", "r", encoding="utf-8") as f:
     act_space_kwargs = json.load(f)
   
+  save_freqs=[1, 100, 1000, 10_000, 100_000, 300_000, 500_000, 700_000]\
+              + list(range(1_000_000, train_args["iterations"]+1, 1_000_000))
+  print(save_freqs)
+  checkpoint_callback = SaveIterations(
+                          save_freqs=save_freqs,
+                          save_path=os.path.join(train_args["save_path"], train_args["name"]),
+                          name_prefix=train_args["name"]
+                          )
+
   return train(env,
                obs_space_kwargs=obs_space_kwargs,
                act_space_kwargs=act_space_kwargs,
+               checkpoint_callback=checkpoint_callback,
                **train_args)
 
 
