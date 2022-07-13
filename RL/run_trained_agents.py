@@ -7,6 +7,7 @@ import numpy as np
 from tqdm import tqdm
 from lightsim2grid import LightSimBackend
 from multiprocessing import Pool, Manager
+import torch
 
 import grid2op
 from grid2op.Agent import BaseAgent
@@ -308,6 +309,7 @@ def get_all_args(manager, safe_max_rhos, limit_cs_margins, training_iters, args)
 if __name__ == "__main__":
     args = cli()
     use_cuda = check_cuda(args)
+    torch.multiprocessing.set_start_method("spawn")
     
     # create the "manager" that will hold the data
     manager = Manager()
