@@ -20,7 +20,6 @@ import numpy as np
 
 is_windows = sys.platform.startswith("win32")
 
-<<<<<<< HEAD
 env_name = "l2rpn_wcci_2022"
 SCOREUSED = ScoreL2RPN2022  # ScoreICAPS2021
 
@@ -28,15 +27,6 @@ name_stats = "_reco_powerline"
 nb_process_stats = 4 if not is_windows else 1
 # if you still want to use multi processing on windows
 # have a look at the `env.generate_classe()` function
-=======
-env_name = "l2rpn_icaps_2021_small"
-env_name = "l2rpn_wcci_2022"
-env_name = "wcci_2022_dev"
-SCOREUSED = ScoreL2RPN2020  # ScoreICAPS2021
-
-name_stats = "_reco_powerline"
-nb_process_stats = 4 if not is_windows else 1
->>>>>>> origin/main
 verbose = 1
 deep_copy = is_windows  # force the deep copy on windows (due to permission issue in symlink in windows)
 
