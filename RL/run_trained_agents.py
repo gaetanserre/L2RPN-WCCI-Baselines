@@ -153,13 +153,13 @@ def get_agent(submission_dir, agent_dir, weights_dir, env, safe_max_rho, limit_c
     return agent_to_evaluate
 
 
-def create_env_score_fun(env_name):
+def create_env_score_fun(env_name, path_config_set):
     # create the environment
     env = grid2op.make(env_name,
                        backend=LightSimBackend())
     
     # read the seeds and other configuration
-    config_file = os.path.join(os.path.abspath(args.path_config_set), "config_val.json")
+    config_file = os.path.join(os.path.abspath(path_config_set), "config_val.json")
     with open(config_file, "r", encoding="utf-8") as f:
         config = json.load(f)
     env_seeds =  [int(config["episodes_info"][os.path.split(el)[-1]]["seed"]) for el in sorted(env.chronics_handler.real_data.subpaths)]
@@ -178,6 +178,7 @@ def get_agent_score(env_name,
                     submission_dir,
                     agent_dir,
                     weights_dir,
+                    args,
                     safe_max_rho,
                     limit_cs_margin,
                     res,
@@ -189,7 +190,7 @@ def get_agent_score(env_name,
                     total):
     
     # create the env and the score function
-    env, score_fun = create_env_score_fun(env_name)
+    env, score_fun = create_env_score_fun(env_name, args.path_config_set)
     
     # create the agent
     agent_to_evaluate = get_agent(submission_dir,
@@ -289,6 +290,7 @@ def get_all_args(manager, safe_max_rhos, limit_cs_margins, training_iters, args)
                                              submission_dir,
                                              agent_dir,
                                              weights_dir,
+                                             args,
                                              safe_max_rho,
                                              limit_cs_margin,
                                              res,
