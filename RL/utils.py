@@ -11,14 +11,144 @@ import json
 import os
 from grid2op.Parameters import Parameters
 from grid2op.Reward import BaseReward
+from l2rpn_baselines.PPO_SB3 import evaluate
+from stable_baselines3.common.callbacks import BaseCallback
+from typing import Iterable
 
-# Visualization
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+class SaveIterations(BaseCallback):
+    """
+    Callback for saving a model every ``save_freq`` calls
+    to ``env.step()``.
 
-from examples.ppo_stable_baselines.A_prep_env import get_env_seed
-from examples.ppo_stable_baselines.C_evaluate_trained_model import get_ts_survived_dn, get_ts_survived_reco, load_agent
+    .. warning::
+
+      When using multiple environments, each call to  ``env.step()``
+      will effectively correspond to ``n_envs`` steps.
+      To account for that, you can use ``save_freq = max(save_freq // n_envs, 1)``
+
+    :param save_freq:
+    :param save_path: Path to the folder where the model will be saved.
+    :param name_prefix: Common prefix to the saved models
+    :param verbose:
+    """
+
+    def __init__(self, save_freqs: Iterable[int], save_path: str, name_prefix: str = "rl_model", verbose: int = 0):
+        super(SaveIterations, self).__init__(verbose)
+        self.save_freqs = save_freqs
+        self.save_path = save_path
+        self.name_prefix = name_prefix
+
+    def _init_callback(self) -> None:
+        # Create folder if needed
+        if self.save_path is not None:
+            os.makedirs(self.save_path, exist_ok=True)
+
+    def _on_step(self) -> bool:
+        if self.n_calls in self.save_freqs:
+            path = os.path.join(self.save_path, f"{self.name_prefix}_{self.num_timesteps}_steps")
+            self.model.save(path)
+            if self.verbose > 1:
+                print(f"Saving model checkpoint to {path}")
+        return True
+
+
+def _aux_get_env(env_name, dn=True, name_stat=None):
+    path_ = grid2op.get_current_local_dir()
+    path_env = os.path.join(path_, env_name)
+    if not os.path.exists(path_env):
+        raise RuntimeError(f"The environment \"{env_name}\" does not exist.")
+
+    path_dn = os.path.join(path_env, "_statistics_l2rpn_dn")
+        
+    if not os.path.exists(path_dn):
+        raise RuntimeError("The folder _statistics_icaps2021_dn (or _statistics_l2rpn_dn) used for computing the score do not exist")
+    path_reco = os.path.join(path_env, "_statistics_l2rpn_no_overflow_reco")
+    if not os.path.exists(path_reco):
+        raise RuntimeError("The folder _statistics_l2rpn_no_overflow_reco used for computing the score do not exist")
+    
+    if name_stat is None:
+        if dn:
+            path_metadata = os.path.join(path_dn, "metadata.json")
+        else:
+            path_metadata = os.path.join(path_reco, "metadata.json")
+    else:
+        path_stat = os.path.join(path_env, EpisodeStatistics.get_name_dir(name_stat))
+        if not os.path.exists(path_stat):
+            raise RuntimeError(f"No folder associated with statistics {name_stat}")
+        path_metadata = os.path.join(path_stat, "metadata.json")
+    
+    if not os.path.exists(path_metadata):
+        raise RuntimeError("No metadata can be found for the statistics you wanted to compute.")
+    
+    with open(path_metadata, "r", encoding="utf-8") as f:
+        dict_ = json.load(f)
+    
+    return dict_
+
+
+def get_env_seed(env_name: str):
+    """This function ensures that you can reproduce the results of the computed scenarios.
+    
+    It forces the seeds of the environment, during evaluation to be the same as the one used during the evaluation of the score.
+    
+    As environments are stochastic in grid2op, it is very important that you use this function (or a similar one) before
+    computing the scores of your agent.
+
+    Args:
+        env_name (str): The environment name on which you want to retrieve the seeds used
+
+    Raises:
+        RuntimeError: When it is not possible to retrieve the seeds (for example when the "statistics" has not been computed)
+
+    Returns:
+        [type]: [description]
+    """
+
+    dict_ = _aux_get_env(env_name)
+    
+    key = "env_seeds"
+    if key not in dict_:
+        raise RuntimeError(f"Impossible to find the key {key} in the dictionnary. You should re run the score function.")
+    
+    return dict_[key]
+
+
+def get_ts_survived_dn(env_name, nb_scenario):
+    dict_ = _aux_get_env(env_name, dn=True)
+    res = []
+    for kk in range(nb_scenario):
+        tmp_ = dict_[f"{kk}"]["nb_step"]
+        res.append(tmp_)
+    res = np.array(res)
+    res -= 1  # the first observation (after reset) is counted as a step in the runner
+    return res
+
+def get_ts_survived_reco(env_name, nb_scenario):
+    dict_ = _aux_get_env(env_name, name_stat="_reco_powerline")
+    res = []
+    for kk in range(nb_scenario):
+        tmp_ = dict_[f"{kk}"]["nb_step"]
+        res.append(tmp_)
+    res = np.array(res)
+    res -= 1  # the first observation (after reset) is counted as a step in the runner
+    return res
+
+
+def load_agent(env, load_path, name,
+               gymenv_class,
+               gymenv_kwargs,
+               obs_space_kwargs=None,
+               act_space_kwargs=None):
+    trained_agent, _ = evaluate(env,
+                                nb_episode=0,
+                                load_path=load_path,
+                                name=name,
+                                gymenv_class=gymenv_class,
+                                iter_num=None,
+                                gymenv_kwargs=gymenv_kwargs,
+                                obs_space_kwargs=obs_space_kwargs,
+                                act_space_kwargs=act_space_kwargs)
+    return trained_agent
 
 
 def split_train_val_test_sets(ENV_NAME: str, deep_copy):
@@ -140,9 +270,19 @@ def train_agent(env, train_args:dict, max_iter:int = None, other_meta_params=Non
   with open("./preprocess_act.json", "r", encoding="utf-8") as f:
     act_space_kwargs = json.load(f)
   
+  save_freqs=[1, 100, 1000, 10_000, 100_000, 300_000, 500_000, 700_000]\
+              + list(range(1_000_000, train_args["iterations"]+1, 1_000_000))
+  print(save_freqs)
+  checkpoint_callback = SaveIterations(
+                          save_freqs=save_freqs,
+                          save_path=os.path.join(train_args["save_path"], train_args["name"]),
+                          name_prefix=train_args["name"]
+                          )
+
   return train(env,
                obs_space_kwargs=obs_space_kwargs,
                act_space_kwargs=act_space_kwargs,
+               checkpoint_callback=checkpoint_callback,
                **train_args)
 
 

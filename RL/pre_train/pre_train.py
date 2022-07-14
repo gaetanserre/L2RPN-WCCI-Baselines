@@ -367,7 +367,7 @@ if __name__ == "__main__":
                                     # curtailment part of the observation
                                     "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                     ]
-    train_args["act_attr_to_keep"] = ["set_storage", "curtail"]
+    train_args["act_attr_to_keep"] = ["set_storage", "curtail", "redispatch"]
     train_args["iterations"] = 30_000
     train_args["learning_rate"] = 1e-4
     train_args["net_arch"] = [300, 300, 300]
@@ -403,7 +403,7 @@ if __name__ == "__main__":
     ## Preparation of datasets
     # data = np.load("expert_data/expert_data_2022-06-03_17-29.npz", allow_pickle=True)
     data = np.load("expert_data/expert_data_2022-06-13_20-12.npz", allow_pickle=True)
-    expert_flag      = data.get("expert_flag")
+    expert_flag         = data.get("expert_flag")
     expert_observations = to_gym_obss(gym_env, data.get("expert_observations"))
     # expert_actions      = to_gym_acts(gym_env, data.get("expert_actions"))
     expert_actions      = data.get("expert_gym_actions")

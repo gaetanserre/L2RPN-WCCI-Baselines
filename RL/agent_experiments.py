@@ -13,14 +13,15 @@ from lightsim2grid import LightSimBackend
 
 import grid2op
 from grid2op.Chronics import MultifolderWithCache
-from grid2op.utils import ScoreL2RPN2022, ScoreL2RPN2020
+from grid2op.utils import ScoreL2RPN2022
 # from l2rpn_baselines.utils import GymEnvWithRecoWithDN
 
 from utils import *
 # from CustomGymEnv import CustomGymEnv
 
 
-from examples.ppo_stable_baselines.B_train_agent import CustomReward
+#from examples.ppo_stable_baselines.B_train_agent import CustomReward
+from grid2op.Reward import EpisodeDurationReward
 
 from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
 
@@ -90,7 +91,7 @@ if __name__ == "__main__":
     nb_process_stats = 8 if not is_windows_or_darwin else 1
     deep_copy = is_windows  # force the deep copy on windows (due to permission issue in symlink in windows)
     verbose = 1
-    SCOREUSED = ScoreL2RPN2020  # ScoreICAPS2021
+    SCOREUSED = ScoreL2RPN2022  # ScoreICAPS2021
     name_stats = "_reco_powerline"
 
     # save / load information (NB agent name is defined later)
@@ -125,11 +126,10 @@ if __name__ == "__main__":
     train_args["gymenv_kwargs"] = {"safe_max_rho": float(args.safe_max_rho)}
     train_args["normalize_act"] = True
     train_args["normalize_obs"] = True
-    train_args["save_every_xxx_steps"] = min(train_args["iterations"] // 10, 1000_000)
+    train_args["save_every_xxx_steps"] = min(max(train_args["iterations"]//10, 1), 1_000_000)
     train_args["n_steps"] = 16 # 256
     train_args["batch_size"] = 16 # 64
     train_args["learning_rate"] =  float(args.lr)
-    # train_args["ratio_keep_chronics"] =  float(args.ratio_keep_chronics)
     
     # Set the right grid2op environment parameters
     filter_chronics = None        
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     
     # prepare the real training environment
     env_train = grid2op.make(env_name_train if filter_chronics is None else ENV_NAME,
-                             reward_class=CustomReward,
+                             reward_class=EpisodeDurationReward,
                              backend=LightSimBackend(),
                              chronics_class=MultifolderWithCache,
                              param=param)
@@ -210,12 +210,5 @@ if __name__ == "__main__":
         # assign a unique name
         agent_name = f"{args.agent_name}_{datetime.datetime.now():%Y%m%d_%H%M%S}"
         train_args["name"] = agent_name
-        
-        values_to_test = np.array([float(args.lr)])
-        var_to_test = "learning_rate"
-        agents = iter_hyperparameters(env_train,
-                                      train_args,
-                                      agent_name,
-                                      var_to_test,
-                                      values_to_test,
-                                      other_meta_params={"ratio_keep_chronics":  float(args.ratio_keep_chronics)})
+
+        agent = train_agent(env_train, train_args, other_meta_params={"ratio_keep_chronics": float(args.ratio_keep_chronics)})

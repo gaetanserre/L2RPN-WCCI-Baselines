@@ -18,3 +18,6 @@ input_data_val
 RL/agents_runs\ (copie).json
 RL/agents_runs*.json
 RL/venv/
+ingestion_program_test
+input_data_test
+RL/ADPRL_paper
