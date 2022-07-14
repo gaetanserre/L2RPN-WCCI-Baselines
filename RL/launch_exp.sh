@@ -12,4 +12,4 @@ python run_trained_agents.py \
 
 #--limit_cs_margin 40. 60. 80 100. 120. 140. 160. 180. \
 #--expe_name figure_7_2 \
-#--safe_max_rho 0.9 \
+#--safe_max_rho 1.0 \
