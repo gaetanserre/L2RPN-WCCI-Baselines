@@ -299,8 +299,6 @@ def get_all_args(manager, safe_max_rhos, limit_cs_margins, training_iters, args)
                                              limit_cs_margin_str,
                                              training_iter_str,
                                              weights_dir_str,
-                                             i,
-                                             int(args.nb_process)
                                              )
                                             )
                             i += 1
@@ -334,6 +332,10 @@ if __name__ == "__main__":
     
     # compute the arguments needed for the function
     res, all_args = get_all_args(manager, safe_max_rhos, limit_cs_margins, training_iters, args)
+    
+    # shuffle it (to be able to look faser at the results during the evaluation)
+    np.random.shuffle(all_args)
+    all_args = [el + (i, int(args.nb_process)) for i, el in enumerate(all_args)]
     
     # execute the agents
     print()
