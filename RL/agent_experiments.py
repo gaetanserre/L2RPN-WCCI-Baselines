@@ -23,7 +23,8 @@ from utils import *
 #from examples.ppo_stable_baselines.B_train_agent import CustomReward
 from grid2op.Reward import EpisodeDurationReward
 
-from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
+# from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
+from gymEnvWithRecoWithDNLimitCS import GymEnvWithRecoWithDNWithCS
 
 
 ENV_NAME = "l2rpn_wcci_2022"
@@ -97,7 +98,8 @@ if __name__ == "__main__":
     # save / load information (NB agent name is defined later)
     env_name_train = '_'.join([ENV_NAME, "train"])
     save_path = "./saved_model"
-    gymenv_class = GymEnvWithRecoWithDNWithShuffle
+    # gymenv_class = GymEnvWithRecoWithDNWithShuffle
+    gymenv_class = GymEnvWithRecoWithDNWithCS
     load_path = None
     load_name = None
 
@@ -211,8 +213,11 @@ if __name__ == "__main__":
         agent_name = f"{args.agent_name}_{datetime.datetime.now():%Y%m%d_%H%M%S}"
         train_args["name"] = agent_name
         
-        values_to_test = np.array([float(args.lr)])
-        var_to_test = "learning_rate"
+        # values_to_test = np.array([float(args.lr)])
+        # var_to_test = "learning_rate"
+        values_to_test = [{**train_args["gymenv_kwargs"], "cs_margin":el} for el in [0, 15, 30, 40, 50, 60, 70, 85, 100, 150]]
+        print(values_to_test)
+        var_to_test = "gymenv_kwargs"
         agents = iter_hyperparameters(env_train,
                                       train_args,
                                       agent_name,

@@ -6,9 +6,10 @@ import numpy as np
 # see https://github.com/rte-france/l2rpn-baselines/issues/43
 
 class GymEnvWithHeuristicsWithDNFixed(GymEnvWithHeuristics):
-    def __init__(self, env_init, *args, reward_cumul="init", **kwargs):
+    def __init__(self, env_init, *args, reward_cumul="init", safe_max_rho=0.9, **kwargs):
         super().__init__(env_init, *args, **kwargs)
         self.prev_obs = None
+        self._safe_max_rho = safe_max_rho
         
     def fix_action(self, obs, grid2op_action):
         """This function can be used to "fix" / "modify" / "cut" / "change"
