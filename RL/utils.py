@@ -12,12 +12,16 @@ import os
 from grid2op.Parameters import Parameters
 from grid2op.Reward import BaseReward
 from l2rpn_baselines.PPO_SB3 import evaluate
+from grid2op.dtypes import dt_float
 
 def _aux_get_env(env_name, dn=True, name_stat=None):
     path_ = grid2op.get_current_local_dir()
     path_env = os.path.join(path_, env_name)
     if not os.path.exists(path_env):
+      if not os.path.exists(env_name):
         raise RuntimeError(f"The environment \"{env_name}\" does not exist.")
+      else:
+        path_env=env_name
 
     path_dn = os.path.join(path_env, "_statistics_l2rpn_dn")
         
@@ -475,4 +479,43 @@ class CustomReward2(BaseReward):
         # score too much redisp
         # res = score_goal * (1.0 - 0.5 * (score_action + score_state)
         res = score_goal * (1.0 - 0.5 * (score_curtail_state + score_storage))
+        return res
+
+class ViolentFlatReward(BaseReward):
+    """
+    This reward return a fixed number (if there are not error) or 0 if there is an error.
+
+    Examples
+    ---------
+    You can use this reward in any environment with:
+
+    .. code-block:
+
+        import grid2op
+        from grid2op.Reward import FlatReward
+
+        # then you create your environment with it:
+        NAME_OF_THE_ENVIRONMENT = "rte_case14_realistic"
+        env = grid2op.make(NAME_OF_THE_ENVIRONMENT,reward_class=ViolentFlatReward)
+        # and do a step with a "do nothing" action
+        obs = env.reset()
+        obs, reward, done, info = env.step(env.action_space())
+        # the reward is computed with the FlatReward class
+
+    """
+
+    def __init__(self, logger=None):
+        BaseReward.__init__(self, logger=logger)
+        self.reward_min = dt_float(-100.0)
+        self.reward_max = dt_float(1.0)
+
+
+
+    def __call__(self, action, env, has_error, is_done, is_illegal, is_ambiguous):
+        if is_done and env.nb_time_step < env.max_episode_duration():
+            res = self.reward_min
+        elif not has_error:
+            res = self.reward_max
+        else:
+            res = dt_float(0.0)
         return res

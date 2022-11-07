@@ -21,13 +21,15 @@ from utils import *
 
 
 #from examples.ppo_stable_baselines.B_train_agent import CustomReward
-from grid2op.Reward import EpisodeDurationReward
+# from grid2op.Reward import EpisodeDurationReward
+from grid2op.Reward import GameplayReward
 
-# from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
-from gymEnvWithRecoWithDNLimitCS import GymEnvWithRecoWithDNWithCS
+from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
+# from gymEnvWithRecoWithDNLimitCS import GymEnvWithRecoWithDNWithCS
 
 
-ENV_NAME = "l2rpn_wcci_2022"
+# ENV_NAME = "l2rpn_wcci_2022"
+ENV_NAME = "educ_case14_storage_custom"
 
 
 def cli():
@@ -92,14 +94,14 @@ if __name__ == "__main__":
     nb_process_stats = 8 if not is_windows_or_darwin else 1
     deep_copy = is_windows  # force the deep copy on windows (due to permission issue in symlink in windows)
     verbose = 1
-    SCOREUSED = ScoreL2RPN2020  # ScoreICAPS2021
+    SCOREUSED = ScoreL2RPN2022
     name_stats = "_reco_powerline"
 
     # save / load information (NB agent name is defined later)
     env_name_train = '_'.join([ENV_NAME, "train"])
-    save_path = "./saved_model"
-    # gymenv_class = GymEnvWithRecoWithDNWithShuffle
-    gymenv_class = GymEnvWithRecoWithDNWithCS
+    save_path = "./saved_model/expe_case_14/expe_hp/expe_lr/"
+    gymenv_class = GymEnvWithRecoWithDNWithShuffle
+    # gymenv_class = GymEnvWithRecoWithDNWithCS
     load_path = None
     load_name = None
 
@@ -111,11 +113,11 @@ if __name__ == "__main__":
     train_args["gymenv_class"] = gymenv_class
     train_args["device"] = torch.device("cuda" if use_cuda else "cpu")
     # some "meta parameters" of the training and the optimization
-    train_args["obs_attr_to_keep"] = ["month", "day_of_week", "hour_of_day", "minute_of_hour",
+    train_args["obs_attr_to_keep"] = [# "month", "day_of_week", "hour_of_day", "minute_of_hour",
                                       "gen_p", "load_p", 
                                       "p_or", "rho", "timestep_overflow", "line_status",
                                       # dispatch part of the observation
-                                      "actual_dispatch", "target_dispatch",
+                                      # "actual_dispatch", "target_dispatch",
                                       # storage part of the observation
                                       "storage_charge", "storage_power",
                                       # curtailment part of the observation
@@ -128,13 +130,16 @@ if __name__ == "__main__":
     train_args["gymenv_kwargs"] = {"safe_max_rho": float(args.safe_max_rho)}
     train_args["normalize_act"] = True
     train_args["normalize_obs"] = True
-    train_args["save_every_xxx_steps"] = min(max(train_args["iterations"]//10, 1), 500_000)
-    train_args["n_steps"] = 16 # 256
-    train_args["batch_size"] = 16 # 64
+    train_args["save_every_xxx_steps"] = min(max(train_args["iterations"]//20, 1), 500_000)
+    train_args["n_steps"] = 256 # 16
+    train_args["batch_size"] = 64 # 16
     train_args["learning_rate"] =  float(args.lr)
     
     # Set the right grid2op environment parameters
-    filter_chronics = None        
+    # filter_chronics = None     
+    def filter_chronics(chronic_name):
+        return True 
+       
     try:
         if filter_chronics is None:
             # env = grid2op.make(ENV_NAME)
@@ -164,7 +169,7 @@ if __name__ == "__main__":
     
     # prepare the real training environment
     env_train = grid2op.make(env_name_train if filter_chronics is None else ENV_NAME,
-                             reward_class=EpisodeDurationReward,
+                             reward_class=GameplayReward, # EpisodeDurationReward,
                              backend=LightSimBackend(),
                              chronics_class=MultifolderWithCache,
                              param=param)
@@ -215,9 +220,10 @@ if __name__ == "__main__":
         
         # values_to_test = np.array([float(args.lr)])
         # var_to_test = "learning_rate"
-        values_to_test = [{**train_args["gymenv_kwargs"], "cs_margin":el} for el in [0, 15, 30, 40, 50, 60, 70, 85, 100, 150]]
-        print(values_to_test)
-        var_to_test = "gymenv_kwargs"
+        values_to_test = [64, 256, 1024, 2048, 4096]
+        var_to_test = "n_steps"
+        # values_to_test = [{**train_args["gymenv_kwargs"], "cs_margin":el} for el in [0, 15, 30, 40, 50, 60, 70, 85, 100, 150]]
+        # var_to_test = "gymenv_kwargs"
         agents = iter_hyperparameters(env_train,
                                       train_args,
                                       agent_name,
