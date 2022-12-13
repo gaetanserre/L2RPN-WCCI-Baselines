@@ -20,9 +20,9 @@ from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
 
 from agent_experiments import ENV_NAME, check_cuda
 
-DEFAULT_SAFE_MAX_RHO = 0.9
-DEFAULT_TRAINING_ITER = 10_000_000
-DEFAULT_LIMIT_CS_MARGINS = 150.
+DEFAULT_SAFE_MAX_RHO = 0.2
+DEFAULT_TRAINING_ITER = 1_000_000
+DEFAULT_LIMIT_CS_MARGINS = -1
 
 # usage
 # first run to find the best agent (on validation set)
@@ -70,35 +70,40 @@ def cli():
                         help=f"Name for the agents you want to study, default to None, meaning 'i take everything'). You can add more than one.")
     
     parser.add_argument("--path_test_set",
-                        default="../input_data_val",
+                        default="educ_case14_storage_custom", # "../input_data_val",
                         type=str,
                         help="Name of the environment on which you want to evaluate your agents")
     
     parser.add_argument("--path_config_set",
-                        default="../ingestion_program_val",
+                        default="./../ingestion_program_case14",
                         type=str,
                         help="Name of configuration file for the environment (mainly the seeds)")
     
-    parser.add_argument("--path_agents", default="../../2022_ADPRL_paper/",
+    parser.add_argument("--path_agents", default="./saved_model/expe_case_14/expe_to_run/",
                         type=str,
                         help=("Path where the agents are stored. They are in the format `path_agents/A_DIRECTORY/AGENTS` "
                               "(ie in a sub directory of the path_agents argument)"))
     
-    parser.add_argument("--expe_name", default="safe_max_rho",
+    parser.add_argument("--expe_name", default="test",
                         type=str,
                         help=("Name to use for the experiment when saving the json data. Json will be saved in agents_runs_EXPE_NAME.json"))
     
-    parser.add_argument("--nb_process", default=1, type=int,
+    parser.add_argument("--nb_process", default=8, type=int,
                         help=("Number of processes used to run the experiment. Each agent is run on "
                               "a single process independantly from one another (default 1).")
                         )
+    parser.add_argument("--chronics_name",
+                        nargs='+',
+                        help="Chronics on which you want to evaluate your agents")
     return parser.parse_args()
 
 
 class BaselineAgent(BaseAgent):
     """see https://github.com/rte-france/l2rpn-baselines/issues/43
-    a feature is missing in the l2rpn baselines repo"""
-    def __init__(self, l2rpn_agent, limit_cs_margin):
+    a feature is missing in the l2rpn baselines repo
+    
+    Default limit_cs_margin is -1 and means that the l2rpn_agent's action is not modified"""
+    def __init__(self, l2rpn_agent, limit_cs_margin = -1):
         BaseAgent.__init__(self, l2rpn_agent.action_space)
         self.l2rpn_agent = l2rpn_agent
         self.limit_cs_margin = limit_cs_margin
@@ -106,7 +111,8 @@ class BaselineAgent(BaseAgent):
     def act(self, obs, reward, done=False):
         action = self.l2rpn_agent.act(obs, reward, done)
         # We try to limit to end up with a "game over" because actions on curtailment or storage units.
-        action.limit_curtail_storage(obs, margin=self.limit_cs_margin)
+        if self.limit_cs_margin != -1:
+            action.limit_curtail_storage(obs, margin=self.limit_cs_margin)
         return action
 
 
@@ -153,22 +159,53 @@ def get_agent(submission_dir, agent_dir, weights_dir, env, safe_max_rho, limit_c
     agent_to_evaluate = BaselineAgent(l2rpn_agent, limit_cs_margin)
     return agent_to_evaluate
 
+# def filter_chronics(x, li_to_keep=["2019-01-18"]):
+#     res = False
+#     for el in li_to_keep:
+#         if re.search(el, x) is not None:
+#             res = True
+#             break
+#     return res
 
-def create_env_score_fun(env_name, path_config_set):
+def make_filter_chonics(chronics_name):
+    if chronics_name is None:
+        return None
+    else:
+        def filter_chronics(x):
+            res = False
+            for el in chronics_name:
+                if re.search(el, x) is not None:
+                    res = True
+                    break
+            return res
+        return filter_chronics
+
+
+def create_env_score_fun(env_name, path_config_set, chronics_name=None):
+    # choose parameters of future env
+    env_tmp = grid2op.make(env_name,
+                       backend=LightSimBackend())
+    param = env_tmp.parameters
+    param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
     # create the environment
     env = grid2op.make(env_name,
-                       backend=LightSimBackend())
+                       backend=LightSimBackend(),
+                       param=param)
+    filter_chronics = make_filter_chonics(chronics_name) 
+    if chronics_name is not None:
+        env.chronics_handler.real_data.set_filter(filter_chronics)
+        env.chronics_handler.real_data.reset()
     
     # read the seeds and other configuration
     config_file = os.path.join(os.path.abspath(path_config_set), "config_val.json")
     with open(config_file, "r", encoding="utf-8") as f:
         config = json.load(f)
-    env_seeds =  [int(config["episodes_info"][os.path.split(el)[-1]]["seed"]) for el in sorted(env.chronics_handler.real_data.subpaths)]
+    env_seeds =  [int(config["episodes_info"][os.path.split(el)[-1]]["seed"]) for el in sorted(env.chronics_handler.real_data.available_chronics())]
     
     # initialize the class to compute the losses
     score_fun = ScoreL2RPN2022(env,
                                env_seeds=env_seeds,
-                               nb_scenario=int(config["nb_scenario"]),
+                               nb_scenario=len(env_seeds),
                                min_losses_ratio=float(config["score_config"]["min_losses_ratio"]),
                                max_step=-1,
                                nb_process_stats=1)
@@ -191,7 +228,7 @@ def get_agent_score(env_name,
                     total):
     
     # create the env and the score function
-    env, score_fun = create_env_score_fun(env_name, args.path_config_set)
+    env, score_fun = create_env_score_fun(env_name, args.path_config_set, args.chronics_name)
     
     # create the agent
     agent_to_evaluate = get_agent(submission_dir,
@@ -214,14 +251,18 @@ def get_agent_score(env_name,
                 "max": float(np.max(scores)),
                 "n_played": [int(el) for el in n_played], 
                 "total_ts": [int(el) for el in total_ts],
+                "chronics_name": []
                 }
+    if args.chronics_name is not None:
+        this_run["chronics_name"] = [os.path.split(el)[-1] for el in sorted(env.chronics_handler.real_data.available_chronics())]
+
     res[safe_max_rho_str][limit_cs_margin_str][training_iter_str][weights_dir_str] = this_run
     
     if count % total == 0:
         # save temporary results from time to time
         dictproxy_cls = type(res)
         res_json_serializable = convert_to_dict(res, dictproxy_cls)
-        with open(f"agents_runs_{args.expe_name}_tmp_{count // total}.json", "w", encoding="utf-8") as f:
+        with open(f"./agents_runs_json/agents_runs_{args.expe_name}_tmp_{count // total}.json", "w", encoding="utf-8") as f:
             json.dump(obj=res_json_serializable, fp=f)
         
     return this_run
@@ -344,5 +385,5 @@ if __name__ == "__main__":
     # I save the score of each agents
     dictproxy_cls = type(res)
     res_json_serializable = convert_to_dict(res, dictproxy_cls)
-    with open(f"agents_runs_{args.expe_name}.json", "w", encoding="utf-8") as f:
+    with open(f"./agents_runs_json/agents_runs_{args.expe_name}.json", "w", encoding="utf-8") as f:
         json.dump(obj=res_json_serializable, fp=f)

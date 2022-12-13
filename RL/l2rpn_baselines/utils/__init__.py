@@ -23,6 +23,7 @@ __all__ = [
     "GymEnvWithHeuristics",
     "GymEnvWithReco",
     "GymEnvWithRecoWithDN",
+    "SummaryWriterCallback",
 ]
 
 from l2rpn_baselines.utils.cli_eval import cli_eval
@@ -39,3 +40,4 @@ from l2rpn_baselines.utils.baseDeepQ import BaseDeepQ
 from l2rpn_baselines.utils.deepQAgent import DeepQAgent
 from l2rpn_baselines.utils.gymAgent import GymAgent
 from l2rpn_baselines.utils.gymenv_custom import GymEnvWithHeuristics, GymEnvWithReco, GymEnvWithRecoWithDN
+from l2rpn_baselines.utils.summaryWriterCallback import SummaryWriterCallback

@@ -26,7 +26,7 @@ input_data_val
 PPO_one_week_trained
 PPO_one_week_trained_0
 RL/agents_runs\ (copie).json
-RL/agents_runs*.json
+RL/agents_runs_json/
 RL/venv/
 *.png
 RL/Submission_OptimCVXPY_case14

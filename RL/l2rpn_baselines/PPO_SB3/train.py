@@ -34,6 +34,7 @@ from l2rpn_baselines.PPO_SB3.utils import (default_obs_attr_to_keep,
                                            default_act_attr_to_keep,
                                            remove_non_usable_attr,
                                            save_used_attribute)
+from l2rpn_baselines.utils import SummaryWriterCallback
 
 
 def train(env,
@@ -267,6 +268,8 @@ def train(env,
             checkpoint_callback = CheckpointCallback(save_freq=save_every_xxx_steps,
                                                      save_path=my_path,
                                                      name_prefix=name)
+            writer_callback = SummaryWriterCallback(save_freq=save_every_xxx_steps)
+            callbalks_list = [checkpoint_callback, writer_callback]
 
     # define the policy
     if policy_kwargs is None:
@@ -315,7 +318,7 @@ def train(env,
 
     # train it
     agent.nn_model.learn(total_timesteps=iterations,
-                         callback=checkpoint_callback,
+                         callback=callbalks_list, # checkpoint_callback,
                          # eval_env=eval_env  # TODO
                          )
 
