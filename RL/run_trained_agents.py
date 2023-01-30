@@ -13,6 +13,7 @@ import grid2op
 from grid2op.Agent import BaseAgent
 from grid2op.utils import ScoreL2RPN2022
 from grid2op.gym_compat import BoxGymActSpace, BoxGymObsSpace
+from stable_baselines3 import PPO
     
 from l2rpn_baselines.PPO_SB3.utils import SB3Agent
 
@@ -57,8 +58,8 @@ def cli():
     
     parser.add_argument("--training_iter",
                         nargs='+',
-                        help=(f"At which training iteration you want to load the agents ? (default "
-                              f"{DEFAULT_TRAINING_ITER}). You can add more than one."))
+                        help=(f"At which training iteration you want to load the agents ? You can add more than one. (default "
+                              f"{DEFAULT_TRAINING_ITER}, meaning it evaluates all available training iteration values)."))
     
     parser.add_argument("--limit_cs_margin", 
                         nargs='+',
@@ -115,31 +116,46 @@ class BaselineAgent(BaseAgent):
             action.limit_curtail_storage(obs, margin=self.limit_cs_margin)
         return action
 
+def get_possible_training_iters(root_dir):
+    possible_training_iters_list = []
+    for name in os.listdir(root_dir):        
+        submission_dir = os.path.join(root_dir, name)
+        for agent_folder in os.listdir(submission_dir):
+            if tested_agent_names is not None:
+            # In this case I search if the possible agent name matches the one the user wants to keep
+                is_in = False
+                for el in tested_agent_names:
+                    if re.search(f"{el}", agent_folder) is not None:
+                        # ignore the agents that do not have the right name
+                        is_in = True
+                        break
+                    
+                if not is_in:
+                    # I skip this name: the user does not want it
+                    continue
 
-def get_agent(submission_dir, agent_dir, weights_dir, env, safe_max_rho, limit_cs_margin):
+            agent_dir = os.path.join(submission_dir, agent_folder)
+            if os.path.isdir(agent_dir):
+                list_model = [el for el in os.listdir(agent_dir) if re.search(r"\d+_steps.zip$", el) is not None]
+                training_iters_list = sorted([int(re.split('_', weights_dir)[-2]) for weights_dir in list_model])
+                if len(possible_training_iters_list) == 0:
+                    possible_training_iters_list = training_iters_list
+                else :
+                    possible_training_iters_list = np.intersect1d(possible_training_iters_list, training_iters_list)
+    possible_training_iters_list = [str(int(training_iter)) for training_iter in possible_training_iters_list]
+    return possible_training_iters_list
+
+def get_agent(weights_dir, env, safe_max_rho, limit_cs_margin, gym_observation_space=None, gym_action_space=None, nn_type=PPO):
     """this is basically a copy paste of the PPO_SB3 evaluate function with some minor modification
     used to load the correct weights
     """
-    
-    # compute the score of said agent
-    with open(os.path.join(submission_dir, "preprocess_obs.json"), 'r', encoding="utf-8") as f:
-        obs_space_kwargs = json.load(f)
-    with open(os.path.join(submission_dir, "preprocess_act.json"), 'r', encoding="utf-8") as f:
-        act_space_kwargs = json.load(f)
-    
-    # load the attributes kept
-    with open(os.path.join(agent_dir, "obs_attr_to_keep.json"), encoding="utf-8", mode="r") as f:
-        obs_attr_to_keep = json.load(fp=f)
-    with open(os.path.join(agent_dir, "act_attr_to_keep.json"), encoding="utf-8", mode="r") as f:
-        act_attr_to_keep = json.load(fp=f)
 
-    # create the action and observation space
-    gym_observation_space =  BoxGymObsSpace(env.observation_space,
-                                            attr_to_keep=obs_attr_to_keep,
-                                            **obs_space_kwargs)
-    gym_action_space = BoxGymActSpace(env.action_space,
-                                      attr_to_keep=act_attr_to_keep,
-                                      **act_space_kwargs)
+    if gym_observation_space is None:
+        nn_model = nn_type.load(weights_dir)
+        gym_observation_space = nn_model.observation_space
+    if gym_action_space is None:
+        nn_model = nn_type.load(weights_dir)
+        gym_action_space = nn_model.action_space
     
     # create the gym environment for the PPO agent...
     gymenv = GymEnvWithRecoWithDNWithShuffle(env, safe_max_rho=float(safe_max_rho))    
@@ -158,6 +174,69 @@ def get_agent(submission_dir, agent_dir, weights_dir, env, safe_max_rho, limit_c
     
     agent_to_evaluate = BaselineAgent(l2rpn_agent, limit_cs_margin)
     return agent_to_evaluate
+
+# def get_agent(submission_dir, agent_dir, weights_dir, env, safe_max_rho, limit_cs_margin):
+#     """this is basically a copy paste of the PPO_SB3 evaluate function with some minor modification
+#     used to load the correct weights
+#     """
+    
+#     # compute the score of said agent
+#     with open(os.path.join(submission_dir, "preprocess_obs.json"), 'r', encoding="utf-8") as f:
+#         obs_space_kwargs = json.load(f)
+#     with open(os.path.join(submission_dir, "preprocess_act.json"), 'r', encoding="utf-8") as f:
+#         act_space_kwargs = json.load(f)
+    
+#     # load the attributes kept
+#     with open(os.path.join(agent_dir, "obs_attr_to_keep.json"), encoding="utf-8", mode="r") as f:
+#         obs_attr_to_keep = json.load(fp=f)
+#     with open(os.path.join(agent_dir, "act_attr_to_keep.json"), encoding="utf-8", mode="r") as f:
+#         act_attr_to_keep = json.load(fp=f)
+
+#     # create the action and observation space
+#     gym_observation_space =  BoxGymObsSpace(env.observation_space,
+#                                             attr_to_keep=obs_attr_to_keep,
+#                                             **obs_space_kwargs)
+#     gym_action_space = BoxGymActSpace(env.action_space,
+#                                       attr_to_keep=act_attr_to_keep,
+#                                       **act_space_kwargs)
+
+#     # apply normalization on created gym_observation_space and gym_action_space
+#     for attr_nm in act_attr_to_keep:
+#             if (("multiply" in act_space_kwargs and attr_nm in act_space_kwargs["multiply"]) or 
+#                 ("add" in act_space_kwargs and attr_nm in act_space_kwargs["add"]) 
+#                ):
+#                 # attribute is scaled elsewhere
+#                 continue
+#             gym_action_space.normalize_attr(attr_nm)
+    
+#     for attr_nm in obs_attr_to_keep:
+#             if (("divide" in obs_space_kwargs and attr_nm in obs_space_kwargs["divide"]) or 
+#                 ("subtract" in obs_space_kwargs and attr_nm in obs_space_kwargs["subtract"]) 
+#                ):
+#                 # attribute is scaled elsewhere
+#                 continue
+#             gym_observation_space.normalize_attr(attr_nm)
+    
+
+    
+#     # create the gym environment for the PPO agent...
+#     gymenv = GymEnvWithRecoWithDNWithShuffle(env, safe_max_rho=float(safe_max_rho))    
+#     gymenv.action_space.close()
+#     gymenv.action_space = gym_action_space
+#     gymenv.observation_space.close()
+#     gymenv.observation_space = gym_observation_space
+    
+#     # create a grid2gop agent based on that (this will reload the save weights)
+#     l2rpn_agent = SB3Agent(env.action_space,
+#                            gym_action_space,
+#                            gym_observation_space,
+#                            nn_path=weights_dir,
+#                            gymenv=gymenv
+#                            )
+    
+#     agent_to_evaluate = BaselineAgent(l2rpn_agent, limit_cs_margin)
+#     return agent_to_evaluate
+
 
 # def filter_chronics(x, li_to_keep=["2019-01-18"]):
 #     res = False
@@ -213,8 +292,8 @@ def create_env_score_fun(env_name, path_config_set, chronics_name=None):
 
 
 def get_agent_score(env_name,
-                    submission_dir,
-                    agent_dir,
+                    # submission_dir,
+                    # agent_dir,
                     weights_dir,
                     args,
                     safe_max_rho,
@@ -231,8 +310,8 @@ def get_agent_score(env_name,
     env, score_fun = create_env_score_fun(env_name, args.path_config_set, args.chronics_name)
     
     # create the agent
-    agent_to_evaluate = get_agent(submission_dir,
-                                  agent_dir,
+    agent_to_evaluate = get_agent(#submission_dir,
+                                  #agent_dir,
                                   weights_dir,
                                   env,
                                   safe_max_rho,
@@ -329,8 +408,8 @@ def get_all_args(manager, safe_max_rhos, limit_cs_margins, training_iters, args)
                         if os.path.exists(weights_dir):
                             weights_dir_str = f"{weights_dir}"
                             all_args.append((str(args.path_test_set),
-                                             submission_dir,
-                                             agent_dir,
+                                            #  submission_dir,
+                                            #  agent_dir,
                                              weights_dir,
                                              args,
                                              safe_max_rho,
@@ -355,6 +434,8 @@ if __name__ == "__main__":
     # create the "manager" that will hold the data
     manager = Manager()
     
+    tested_agent_names = copy.deepcopy(args.agent_name)
+
     # read the arguments for the experiment you want to run
     if args.safe_max_rho is None:
         safe_max_rhos = [DEFAULT_SAFE_MAX_RHO]
@@ -362,7 +443,12 @@ if __name__ == "__main__":
         safe_max_rhos = copy.deepcopy(args.safe_max_rho)
     
     if args.training_iter is None:
-        training_iters = [DEFAULT_TRAINING_ITER]
+        if DEFAULT_TRAINING_ITER == -1:
+            training_iters = get_possible_training_iters(args.path_agents)
+        else:
+            training_iters = [DEFAULT_TRAINING_ITER]
+    elif '-1' in args.training_iter:
+        training_iters = get_possible_training_iters(args.path_agents)
     else:
         training_iters = copy.deepcopy(args.training_iter)
     
@@ -370,8 +456,6 @@ if __name__ == "__main__":
         limit_cs_margins = [DEFAULT_LIMIT_CS_MARGINS]
     else:
         limit_cs_margins = copy.deepcopy(args.limit_cs_margin)
-    
-    tested_agent_names = copy.deepcopy(args.agent_name)
     
     # compute the arguments needed for the function
     res, all_args = get_all_args(manager, safe_max_rhos, limit_cs_margins, training_iters, args)

@@ -197,6 +197,7 @@ class GymAgent(BaseAgent):
             gym_act = self.get_act(gym_obs, reward, done)
             grid2op_act = self._gym_act_space.from_gym(gym_act)
             # fix the action if needed (for example by limiting curtailment and storage)
-            grid2op_act = self.gymenv.fix_action(grid2op_act)
+            if self._has_heuristic:
+                grid2op_act = self.gymenv.fix_action(grid2op_act)
             
         return grid2op_act

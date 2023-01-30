@@ -44,14 +44,14 @@ def cli():
     parser.add_argument("--nb_training", default=-1, type=int,
                         help="How many models do you want to train ? (default: -1 for infinity, might take a while...)")
 
-    parser.add_argument("--lr", default=3e-6, type=float,
-                        help="learning rate to use (default 3e-6)")
+    parser.add_argument("--lr", default=3e-7, type=float,
+                        help="learning rate to use (default 3e-7)")
     
     parser.add_argument("--safe_max_rho", default=0.2, type=float,
                         help="safe_max_rho to use for training (default 0.2)")
     
-    parser.add_argument("--training_iter", default=10_000_000, type=int,
-                        help="Number of training 'iteration' to perform (default 10_000_000)")
+    parser.add_argument("--training_iter", default=1_000_000, type=int,
+                        help="Number of training 'iteration' to perform (default 1_000_000)")
     
     parser.add_argument("--agent_name", default="GymEnvWithRecoWithDN", type=str,
                         help="Name for your agent, default 'GymEnvWithRecoWithDN'")
@@ -220,12 +220,13 @@ if __name__ == "__main__":
         agent_name = f"{args.agent_name}_{datetime.datetime.now():%Y%m%d_%H%M%S}"
         train_args["name"] = agent_name
         
-        # var_to_test = "learning_rate"
+        var_to_test = "learning_rate"
         # values_to_test = np.array([float(args.lr)])
-        var_to_test = "batch_size"
-        values_to_test = [8, 16, 32, 64, 256, 1024, 2048]
+        # var_to_test = "batch_size"
+        values_to_test = [3e-4, 1e-5, 3e-5]
         # var_to_test = "n_steps"
         # values_to_test = [64, 256, 1024, 2048, 4096]
+        # values_to_test = [3e-3, 3e-4, 3e-5, 3e-6, 3e-7, 3e-8]
         # var_to_test = "gymenv_kwargs"
         # values_to_test = [{**train_args["gymenv_kwargs"], "cs_margin":el} for el in [0, 10, 30]]
         # values_to_test = [{"safe_max_rho": 0.9, "reward_cumul":"sum"}, {"safe_max_rho": 0.95, "reward_cumul":"sum"}, {"safe_max_rho": 0.99, "reward_cumul":"sum"}]
