@@ -259,7 +259,7 @@ class GymEnvWithHeuristics(GymEnv):
         done = True
         info = {}  # no extra information provided !
         while done:
-            super().reset(seed, return_info, options)  # reset the scenario
+            super()._aux_reset_new(seed, options)  # reset the scenario
             g2op_obs = self.init_env.get_obs()  # retrieve the observation
             reward = self.init_env.reward_range[0]  # the reward at first step is always minimal
             

@@ -96,6 +96,11 @@ def cli():
     parser.add_argument("--chronics_name",
                         nargs='+',
                         help="Chronics on which you want to evaluate your agents")
+
+    parser.add_argument("--init_storage_capacity",
+                        default="0.5",
+                        type=str,
+                        help="Initial storages' capacity. Default is 0.5.")
     return parser.parse_args()
 
 
@@ -145,79 +150,17 @@ def get_possible_training_iters(root_dir):
     possible_training_iters_list = [str(int(training_iter)) for training_iter in possible_training_iters_list]
     return possible_training_iters_list
 
-def get_agent(weights_dir, env, safe_max_rho, limit_cs_margin, gym_observation_space=None, gym_action_space=None, nn_type=PPO):
-    """this is basically a copy paste of the PPO_SB3 evaluate function with some minor modification
-    used to load the correct weights
-    """
-
-    if gym_observation_space is None:
-        nn_model = nn_type.load(weights_dir)
-        gym_observation_space = nn_model.observation_space
-    if gym_action_space is None:
-        nn_model = nn_type.load(weights_dir)
-        gym_action_space = nn_model.action_space
-    
-    # create the gym environment for the PPO agent...
-    gymenv = GymEnvWithRecoWithDNWithShuffle(env, safe_max_rho=float(safe_max_rho))    
-    gymenv.action_space.close()
-    gymenv.action_space = gym_action_space
-    gymenv.observation_space.close()
-    gymenv.observation_space = gym_observation_space
-    
-    # create a grid2gop agent based on that (this will reload the save weights)
-    l2rpn_agent = SB3Agent(env.action_space,
-                           gym_action_space,
-                           gym_observation_space,
-                           nn_path=weights_dir,
-                           gymenv=gymenv
-                           )
-    
-    agent_to_evaluate = BaselineAgent(l2rpn_agent, limit_cs_margin)
-    return agent_to_evaluate
-
-# def get_agent(submission_dir, agent_dir, weights_dir, env, safe_max_rho, limit_cs_margin):
+# def get_agent(weights_dir, env, safe_max_rho, limit_cs_margin, gym_observation_space=None, gym_action_space=None, nn_type=PPO):
 #     """this is basically a copy paste of the PPO_SB3 evaluate function with some minor modification
 #     used to load the correct weights
 #     """
-    
-#     # compute the score of said agent
-#     with open(os.path.join(submission_dir, "preprocess_obs.json"), 'r', encoding="utf-8") as f:
-#         obs_space_kwargs = json.load(f)
-#     with open(os.path.join(submission_dir, "preprocess_act.json"), 'r', encoding="utf-8") as f:
-#         act_space_kwargs = json.load(f)
-    
-#     # load the attributes kept
-#     with open(os.path.join(agent_dir, "obs_attr_to_keep.json"), encoding="utf-8", mode="r") as f:
-#         obs_attr_to_keep = json.load(fp=f)
-#     with open(os.path.join(agent_dir, "act_attr_to_keep.json"), encoding="utf-8", mode="r") as f:
-#         act_attr_to_keep = json.load(fp=f)
 
-#     # create the action and observation space
-#     gym_observation_space =  BoxGymObsSpace(env.observation_space,
-#                                             attr_to_keep=obs_attr_to_keep,
-#                                             **obs_space_kwargs)
-#     gym_action_space = BoxGymActSpace(env.action_space,
-#                                       attr_to_keep=act_attr_to_keep,
-#                                       **act_space_kwargs)
-
-#     # apply normalization on created gym_observation_space and gym_action_space
-#     for attr_nm in act_attr_to_keep:
-#             if (("multiply" in act_space_kwargs and attr_nm in act_space_kwargs["multiply"]) or 
-#                 ("add" in act_space_kwargs and attr_nm in act_space_kwargs["add"]) 
-#                ):
-#                 # attribute is scaled elsewhere
-#                 continue
-#             gym_action_space.normalize_attr(attr_nm)
-    
-#     for attr_nm in obs_attr_to_keep:
-#             if (("divide" in obs_space_kwargs and attr_nm in obs_space_kwargs["divide"]) or 
-#                 ("subtract" in obs_space_kwargs and attr_nm in obs_space_kwargs["subtract"]) 
-#                ):
-#                 # attribute is scaled elsewhere
-#                 continue
-#             gym_observation_space.normalize_attr(attr_nm)
-    
-
+#     if gym_observation_space is None:
+#         nn_model = nn_type.load(weights_dir)
+#         gym_observation_space = nn_model.observation_space
+#     if gym_action_space is None:
+#         nn_model = nn_type.load(weights_dir)
+#         gym_action_space = nn_model.action_space
     
 #     # create the gym environment for the PPO agent...
 #     gymenv = GymEnvWithRecoWithDNWithShuffle(env, safe_max_rho=float(safe_max_rho))    
@@ -237,6 +180,71 @@ def get_agent(weights_dir, env, safe_max_rho, limit_cs_margin, gym_observation_s
 #     agent_to_evaluate = BaselineAgent(l2rpn_agent, limit_cs_margin)
 #     return agent_to_evaluate
 
+def get_agent(weights_dir, env, safe_max_rho, limit_cs_margin):
+    """this is basically a copy paste of the PPO_SB3 evaluate function with some minor modification
+    used to load the correct weights
+    """
+
+    agent_dir = os.path.dirname(weights_dir)
+    submission_dir = os.path.dirname(agent_dir)
+    
+    # compute the score of said agent
+    with open(os.path.join(submission_dir, "preprocess_obs.json"), 'r', encoding="utf-8") as f:
+        obs_space_kwargs = json.load(f)
+    with open(os.path.join(submission_dir, "preprocess_act.json"), 'r', encoding="utf-8") as f:
+        act_space_kwargs = json.load(f)
+    
+    # load the attributes kept
+    with open(os.path.join(agent_dir, "obs_attr_to_keep.json"), encoding="utf-8", mode="r") as f:
+        obs_attr_to_keep = json.load(fp=f)
+    with open(os.path.join(agent_dir, "act_attr_to_keep.json"), encoding="utf-8", mode="r") as f:
+        act_attr_to_keep = json.load(fp=f)
+
+    # create the action and observation space
+    gym_observation_space =  BoxGymObsSpace(env.observation_space,
+                                            attr_to_keep=obs_attr_to_keep,
+                                            **obs_space_kwargs)
+    gym_action_space = BoxGymActSpace(env.action_space,
+                                      attr_to_keep=act_attr_to_keep,
+                                      **act_space_kwargs)
+
+    # apply normalization on created gym_observation_space and gym_action_space
+    for attr_nm in act_attr_to_keep:
+            if (("multiply" in act_space_kwargs and attr_nm in act_space_kwargs["multiply"]) or 
+                ("add" in act_space_kwargs and attr_nm in act_space_kwargs["add"]) 
+               ):
+                # attribute is scaled elsewhere
+                continue
+            gym_action_space.normalize_attr(attr_nm)
+    
+    for attr_nm in obs_attr_to_keep:
+            if (("divide" in obs_space_kwargs and attr_nm in obs_space_kwargs["divide"]) or 
+                ("subtract" in obs_space_kwargs and attr_nm in obs_space_kwargs["subtract"]) 
+               ):
+                # attribute is scaled elsewhere
+                continue
+            gym_observation_space.normalize_attr(attr_nm)
+    
+
+    
+    # create the gym environment for the PPO agent...
+    gymenv = GymEnvWithRecoWithDNWithShuffle(env, safe_max_rho=float(safe_max_rho))    
+    gymenv.action_space.close()
+    gymenv.action_space = gym_action_space
+    gymenv.observation_space.close()
+    gymenv.observation_space = gym_observation_space
+    
+    # create a grid2gop agent based on that (this will reload the save weights)
+    l2rpn_agent = SB3Agent(env.action_space,
+                           gym_action_space,
+                           gym_observation_space,
+                           nn_path=weights_dir,
+                           gymenv=gymenv
+                           )
+    
+    agent_to_evaluate = BaselineAgent(l2rpn_agent, limit_cs_margin)
+    return agent_to_evaluate
+
 
 # def filter_chronics(x, li_to_keep=["2019-01-18"]):
 #     res = False
@@ -246,9 +254,28 @@ def get_agent(weights_dir, env, safe_max_rho, limit_cs_margin, gym_observation_s
 #             break
 #     return res
 
+# def make_filter_chonics(chronics_name):
+#     if len(chronics_name) == 0:
+#         def filter_chronics(x):
+#             return True
+#         return filter_chronics
+#     else:
+#         def filter_chronics(x):
+#             res = False
+#             for el in chronics_name:
+#                 if re.search(el, x) is not None:
+#                     res = True
+#                     break
+#             return res
+#         return filter_chronics
+
 def make_filter_chonics(chronics_name):
-    if chronics_name is None:
-        return None
+    if len(chronics_name) == 0:
+        def filter_chronics(x):
+            name = os.path.split(x)[-1]
+            res = (int(name) <= 99)
+            return res
+        return filter_chronics
     else:
         def filter_chronics(x):
             res = False
@@ -260,12 +287,13 @@ def make_filter_chonics(chronics_name):
         return filter_chronics
 
 
-def create_env_score_fun(env_name, path_config_set, chronics_name=None):
+def create_env_score_fun(env_name, path_config_set, chronics_name=None, init_storage_capacity = '0.5'):
     # choose parameters of future env
     env_tmp = grid2op.make(env_name,
                        backend=LightSimBackend())
     param = env_tmp.parameters
-    param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
+    # param.LIMIT_INFEASIBLE_CURTAILMENT_STORAGE_ACTION = True
+    param.INIT_STORAGE_CAPACITY = float(init_storage_capacity)
     # create the environment
     env = grid2op.make(env_name,
                        backend=LightSimBackend(),
@@ -307,7 +335,7 @@ def get_agent_score(env_name,
                     total):
     
     # create the env and the score function
-    env, score_fun = create_env_score_fun(env_name, args.path_config_set, args.chronics_name)
+    env, score_fun = create_env_score_fun(env_name, args.path_config_set, args.chronics_name, args.init_storage_capacity)
     
     # create the agent
     agent_to_evaluate = get_agent(#submission_dir,

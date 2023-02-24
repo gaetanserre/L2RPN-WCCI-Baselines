@@ -14,10 +14,14 @@ from lightsim2grid import LightSimBackend
 import grid2op
 from grid2op.Chronics import MultifolderWithCache
 from grid2op.utils import ScoreL2RPN2022, ScoreL2RPN2020
-# from l2rpn_baselines.utils import GymEnvWithRecoWithDN
+
 
 from utils import *
 # from CustomGymEnv import CustomGymEnv
+# from l2rpn_baselines.utils import GymEnvWithRecoWithDN
+# from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
+# from gymEnvWithRecoWithDNLimitCS import GymEnvWithRecoWithDNWithCS
+from GymEnvStorage import GymEnvStorage
 
 
 #from examples.ppo_stable_baselines.B_train_agent import CustomReward
@@ -25,8 +29,7 @@ from utils import *
 # from grid2op.Reward import L2RPNReward
 from grid2op.Reward import GameplayReward
 
-from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
-# from gymEnvWithRecoWithDNLimitCS import GymEnvWithRecoWithDNWithCS
+
 
 
 # ENV_NAME = "l2rpn_wcci_2022"
@@ -101,8 +104,7 @@ if __name__ == "__main__":
     # save / load information (NB agent name is defined later)
     env_name_train = '_'.join([ENV_NAME, "train"])
     save_path = "./saved_model/expe_case_14/expe_to_run/"
-    gymenv_class = GymEnvWithRecoWithDNWithShuffle
-    # gymenv_class = GymEnvWithRecoWithDNWithCS
+    gymenv_class = GymEnvStorage
     load_path = None
     load_name = None
 
@@ -223,7 +225,8 @@ if __name__ == "__main__":
         var_to_test = "learning_rate"
         # values_to_test = np.array([float(args.lr)])
         # var_to_test = "batch_size"
-        values_to_test = [3e-4, 1e-5, 3e-5]
+        # values_to_test = [3e-4, 1e-5, 3e-5]
+        values_to_test = [3e-5]
         # var_to_test = "n_steps"
         # values_to_test = [64, 256, 1024, 2048, 4096]
         # values_to_test = [3e-3, 3e-4, 3e-5, 3e-6, 3e-7, 3e-8]
