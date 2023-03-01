@@ -10,15 +10,17 @@ class GymEnvWithSetPoint(GymEnvWithRecoWithDN):
         self.reset = self.new_reset
         self.step = self.new_step
         self.alpha = alpha
+        self._last_obs = None
 
     def new_reset(self, seed=None, return_info=False, options=None):
         # param = self.init_env.parameters
         # # param.INIT_STORAGE_CAPACITY = self.init_env.space_prng.uniform(size=self.init_env.n_storage)
         # param.INIT_STORAGE_CAPACITY = self.init_env.space_prng.uniform()
         # self.init_env.change_parameters(param)
-        self.storage_setpoint = np.clip(0.5+np.cumsum(self.env_init.space_prng.random.uniform(-0.05, 0.05, (self.init_env.max_episode_duration(), self.init_env.n_storage)), axis=0), 0,1)
-        gymobs = super().reset(seed=seed, return_info=return_info, options=options)
-        gymobs = self._update_setpoint(gymobs, "storage_capacity_setpoint", self.storage_setpoint[self.init_env.nb_time_step, :])
+        self.storage_setpoint = np.clip(0.5+np.cumsum(self.init_env.space_prng.uniform(-0.05, 0.05, (self.init_env.max_episode_duration()+1, self.init_env.n_storage)), axis=0), 0,1)
+        gymobs_tmp = super().reset(seed=seed, return_info=return_info, options=options)
+        gymobs = self._update_setpoint(gymobs_tmp, "storage_capacity_setpoint", self.storage_setpoint[self.init_env.nb_time_step, :])
+        self._last_obs = gymobs
         return gymobs
 
     def _update_setpoint(self, gym_obs, attr_to_update, setpoint):
@@ -53,6 +55,7 @@ class GymEnvWithSetPoint(GymEnvWithRecoWithDN):
             for g2op_act in g2op_actions:
                 need_action = True
                 tmp_obs, tmp_tmp_reward, tmp_done, tmp_info = self.init_env.step(g2op_act)
+                self._last_obs = tmp_obs
                 tmp_reward = self._update_reward(tmp_obs, tmp_tmp_reward)
 
                 g2op_obs = tmp_obs
@@ -71,13 +74,17 @@ class GymEnvWithSetPoint(GymEnvWithRecoWithDN):
                 break
         return g2op_obs, res_reward, done, info
 
+    def get_obs(self):
+        return self._last_obs.copy()
+
     def new_step(self, gym_action):
         g2op_act_tmp = self.action_space.from_gym(gym_action)
         g2op_act = self.fix_action(g2op_act_tmp)
         g2op_obs, reward_tmp, done, info = self.init_env.step(g2op_act)
         reward = self._update_reward(g2op_obs, reward_tmp)
         if not done:
-            g2op_obs, reward_tmp, done, info = self.apply_heuristics_actions(g2op_obs, reward, done, info)
-        gym_obs = self.observation_space.to_gym(g2op_obs)
-        gym_obs = self._update_setpoint(gym_obs, "storage_capacity_setpoint", self.storage_setpoint[self.init_env.nb_time_step, :])
+            g2op_obs, reward, done, info = self.apply_heuristics_actions(g2op_obs, reward, done, info)
+        gym_obs_tmp = self.observation_space.to_gym(g2op_obs)
+        gym_obs = self._update_setpoint(gym_obs_tmp, "storage_capacity_setpoint", self.storage_setpoint[self.init_env.nb_time_step, :])
+        self._last_obs = gym_obs
         return gym_obs, float(reward), done, info

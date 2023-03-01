@@ -21,7 +21,8 @@ from utils import *
 # from l2rpn_baselines.utils import GymEnvWithRecoWithDN
 # from GymEnvWithRecoWithDNWithShuffle import GymEnvWithRecoWithDNWithShuffle
 # from gymEnvWithRecoWithDNLimitCS import GymEnvWithRecoWithDNWithCS
-from GymEnvStorage import GymEnvStorage
+# from GymEnvStorage import GymEnvStorage
+from GymEnvWithSetPoint import GymEnvWithSetPoint
 
 
 #from examples.ppo_stable_baselines.B_train_agent import CustomReward
@@ -47,7 +48,7 @@ def cli():
     parser.add_argument("--nb_training", default=-1, type=int,
                         help="How many models do you want to train ? (default: -1 for infinity, might take a while...)")
 
-    parser.add_argument("--lr", default=3e-7, type=float,
+    parser.add_argument("--lr", default=3e-5, type=float,
                         help="learning rate to use (default 3e-7)")
     
     parser.add_argument("--safe_max_rho", default=0.2, type=float,
@@ -104,7 +105,7 @@ if __name__ == "__main__":
     # save / load information (NB agent name is defined later)
     env_name_train = '_'.join([ENV_NAME, "train"])
     save_path = "./saved_model/expe_case_14/expe_to_run/"
-    gymenv_class = GymEnvStorage
+    gymenv_class = GymEnvWithSetPoint
     load_path = None
     load_name = None
 
@@ -222,15 +223,16 @@ if __name__ == "__main__":
         agent_name = f"{args.agent_name}_{datetime.datetime.now():%Y%m%d_%H%M%S}"
         train_args["name"] = agent_name
         
-        var_to_test = "learning_rate"
+        # var_to_test = "learning_rate"
         # values_to_test = np.array([float(args.lr)])
         # var_to_test = "batch_size"
         # values_to_test = [3e-4, 1e-5, 3e-5]
-        values_to_test = [3e-5]
+        # values_to_test = [3e-5]
         # var_to_test = "n_steps"
         # values_to_test = [64, 256, 1024, 2048, 4096]
         # values_to_test = [3e-3, 3e-4, 3e-5, 3e-6, 3e-7, 3e-8]
-        # var_to_test = "gymenv_kwargs"
+        var_to_test = "gymenv_kwargs"
+        values_to_test = [{**train_args["gymenv_kwargs"], "alpha":el} for el in [5., 10., 15., 20]]
         # values_to_test = [{**train_args["gymenv_kwargs"], "cs_margin":el} for el in [0, 10, 30]]
         # values_to_test = [{"safe_max_rho": 0.9, "reward_cumul":"sum"}, {"safe_max_rho": 0.95, "reward_cumul":"sum"}, {"safe_max_rho": 0.99, "reward_cumul":"sum"}]
 
