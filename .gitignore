@@ -6,6 +6,7 @@ RL/saved_model
 RL/examples/ppo_stable_baselines/__init__.py
 RL/examples/__init__.py
 RL/test.py
+RL/test_old.py
 RL/logs/
 RL/nohup_old/
 RL/model_results

@@ -17,8 +17,8 @@ class GymEnvWithSetPoint(GymEnvWithRecoWithDN):
         # # param.INIT_STORAGE_CAPACITY = self.init_env.space_prng.uniform(size=self.init_env.n_storage)
         # param.INIT_STORAGE_CAPACITY = self.init_env.space_prng.uniform()
         # self.init_env.change_parameters(param)
-        self.storage_setpoint = np.clip(0.5+np.cumsum(self.init_env.space_prng.uniform(-0.05, 0.05, (self.init_env.max_episode_duration()+1, self.init_env.n_storage)), axis=0), 0,1)
         gymobs_tmp = super().reset(seed=seed, return_info=return_info, options=options)
+        self.storage_setpoint = np.clip(0.5+np.cumsum(self.init_env.space_prng.uniform(-0.05, 0.05, (self.init_env.max_episode_duration()+1, self.init_env.n_storage)), axis=0), 0,1)
         gymobs = self._update_setpoint(gymobs_tmp, "storage_capacity_setpoint", self.storage_setpoint[self.init_env.nb_time_step, :])
         self._last_obs = gymobs
         return gymobs
