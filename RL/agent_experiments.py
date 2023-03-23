@@ -23,6 +23,7 @@ from utils import *
 # from gymEnvWithRecoWithDNLimitCS import GymEnvWithRecoWithDNWithCS
 # from GymEnvStorage import GymEnvStorage
 from GymEnvWithSetPoint import GymEnvWithSetPoint
+from GymEnvWithSetPointNoEnv import GymEnvWithSetPointNoEnv
 
 
 #from examples.ppo_stable_baselines.B_train_agent import CustomReward
@@ -105,7 +106,7 @@ if __name__ == "__main__":
     # save / load information (NB agent name is defined later)
     env_name_train = '_'.join([ENV_NAME, "train"])
     save_path = "./saved_model/expe_case_14/expe_to_run/"
-    gymenv_class = GymEnvWithSetPoint
+    gymenv_class = GymEnvWithSetPointNoEnv
     load_path = None
     load_name = None
 
@@ -118,12 +119,12 @@ if __name__ == "__main__":
     train_args["device"] = torch.device("cuda" if use_cuda else "cpu")
     # some "meta parameters" of the training and the optimization
     train_args["obs_attr_to_keep"] = [# "month", "day_of_week", "hour_of_day", "minute_of_hour",
-                                      "gen_p", # "load_p", 
-                                      "rho", # "p_or", "timestep_overflow", "line_status",
+                                       # "gen_p", # "load_p", 
+                                      # "rho", # "p_or", "timestep_overflow", "line_status",
                                       # dispatch part of the observation
                                       # "actual_dispatch", "target_dispatch",
                                       # storage part of the observation
-                                      "storage_charge", "storage_power",
+                                      "storage_charge", # "storage_power",
                                       # curtailment part of the observation
                                     #   "curtailment", "curtailment_limit",  "gen_p_before_curtail",
                                      ]
@@ -131,7 +132,7 @@ if __name__ == "__main__":
     train_args["iterations"] = int(args.training_iter)
     train_args["net_arch"] = [300, 300, 300] # [200, 200, 200, 200]
     train_args["gamma"] = 0.999
-    train_args["gymenv_kwargs"] = {"safe_max_rho": float(args.safe_max_rho)}
+    train_args["gymenv_kwargs"] = {"safe_max_rho": float(args.safe_max_rho), "ind":2}
     train_args["normalize_act"] = True
     train_args["normalize_obs"] = True
     train_args["save_every_xxx_steps"] = min(max(train_args["iterations"]//20, 1), 500_000)
@@ -223,16 +224,17 @@ if __name__ == "__main__":
         agent_name = f"{args.agent_name}_{datetime.datetime.now():%Y%m%d_%H%M%S}"
         train_args["name"] = agent_name
         
-        # var_to_test = "learning_rate"
+        var_to_test = "learning_rate"
         # values_to_test = np.array([float(args.lr)])
         # var_to_test = "batch_size"
-        # values_to_test = [3e-4, 1e-5, 3e-5]
+        values_to_test = [3e-4, 1e-5, 3e-5]
         # values_to_test = [3e-5]
         # var_to_test = "n_steps"
         # values_to_test = [64, 256, 1024, 2048, 4096]
-        # values_to_test = [3e-3, 3e-4, 3e-5, 3e-6, 3e-7, 3e-8]
-        var_to_test = "gymenv_kwargs"
-        values_to_test = [{**train_args["gymenv_kwargs"], "alpha":el} for el in [5., 10., 15., 20]]
+        # values_to_test = [3e-3, 3e-4, 3e-6, 3e-7, 3e-8]
+        # var_to_test = "gymenv_kwargs"
+        # values_to_test = [{**train_args["gymenv_kwargs"], "alpha":el} for el in [5., 10., 15., 20]]
+        # values_to_test = [{**train_args["gymenv_kwargs"], "alpha":20}]
         # values_to_test = [{**train_args["gymenv_kwargs"], "cs_margin":el} for el in [0, 10, 30]]
         # values_to_test = [{"safe_max_rho": 0.9, "reward_cumul":"sum"}, {"safe_max_rho": 0.95, "reward_cumul":"sum"}, {"safe_max_rho": 0.99, "reward_cumul":"sum"}]
 

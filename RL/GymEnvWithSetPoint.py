@@ -7,12 +7,10 @@ import numpy as np
 class GymEnvWithSetPoint(GymEnvWithRecoWithDN): 
     def __init__(self, env_init, *args, reward_cumul="init", safe_max_rho=0.9, alpha=1, **kwargs):
         super().__init__(env_init=env_init, *args, reward_cumul=reward_cumul, safe_max_rho=safe_max_rho, **kwargs)
-        self.reset = self.new_reset
-        self.step = self.new_step
         self.alpha = alpha
         self._last_obs = None
 
-    def new_reset(self, seed=None, return_info=False, options=None):
+    def reset(self, seed=None, return_info=False, options=None):
         # param = self.init_env.parameters
         # # param.INIT_STORAGE_CAPACITY = self.init_env.space_prng.uniform(size=self.init_env.n_storage)
         # param.INIT_STORAGE_CAPACITY = self.init_env.space_prng.uniform()
@@ -37,6 +35,9 @@ class GymEnvWithSetPoint(GymEnvWithRecoWithDN):
             Emin = self.init_env.storage_Emin
             Emax = self.init_env.storage_Emax
             reward -= self.alpha * np.sum(((g2op_obs.storage_charge-Emin)/(Emax-Emin) - self.storage_setpoint[self.init_env.nb_time_step - 1, :])**2) / self.init_env.n_storage
+            rew_min, rew_max = - self.alpha, 1
+            reward = (reward - rew_min)/(rew_max - rew_min)
+
         return reward
 
     def apply_heuristics_actions(self,
@@ -55,7 +56,7 @@ class GymEnvWithSetPoint(GymEnvWithRecoWithDN):
             for g2op_act in g2op_actions:
                 need_action = True
                 tmp_obs, tmp_tmp_reward, tmp_done, tmp_info = self.init_env.step(g2op_act)
-                self._last_obs = tmp_obs
+                self._last_obs = self.observation_space.to_gym(tmp_obs)
                 tmp_reward = self._update_reward(tmp_obs, tmp_tmp_reward)
 
                 g2op_obs = tmp_obs
@@ -77,7 +78,7 @@ class GymEnvWithSetPoint(GymEnvWithRecoWithDN):
     def get_obs(self):
         return self._last_obs.copy()
 
-    def new_step(self, gym_action):
+    def step(self, gym_action):
         g2op_act_tmp = self.action_space.from_gym(gym_action)
         g2op_act = self.fix_action(g2op_act_tmp)
         g2op_obs, reward_tmp, done, info = self.init_env.step(g2op_act)

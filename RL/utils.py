@@ -217,7 +217,7 @@ def train_agent(env, train_args:dict, max_iter:int = None, other_meta_params=Non
   # see https://grid2op.readthedocs.io/en/latest/environment.html#optimize-the-data-pipeline
   # for more information !
   full_path = os.path.join(train_args["save_path"], train_args["name"], 'dict_train_args.json')
-  train_args["obs_attr_to_keep"].append("storage_capacity_setpoint")
+  train_args["obs_attr_to_keep"].append("storage_setpoint")
   dict_to_json = train_args.copy()
   dict_to_json["n_available_chronics"] = len(env.chronics_handler.real_data.available_chronics())
   dict_to_json["gymenv_class"] = dict_to_json["gymenv_class"].__name__
@@ -233,7 +233,7 @@ def train_agent(env, train_args:dict, max_iter:int = None, other_meta_params=Non
 
   with open("./preprocess_obs.json", "r", encoding="utf-8") as f:
     obs_space_kwargs = json.load(f)
-  obs_space_kwargs["functs"] = {"storage_capacity_setpoint":
+  obs_space_kwargs["functs"] = {"storage_setpoint":
                                         (lambda grid2op_obs: np.full(env.n_storage, env.parameters.INIT_STORAGE_CAPACITY), 0., 1.0, None, None)}
   with open("./preprocess_act.json", "r", encoding="utf-8") as f:
     act_space_kwargs = json.load(f)
