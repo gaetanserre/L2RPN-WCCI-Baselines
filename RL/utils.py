@@ -217,8 +217,12 @@ def train_agent(env, train_args:dict, max_iter:int = None, other_meta_params=Non
   # see https://grid2op.readthedocs.io/en/latest/environment.html#optimize-the-data-pipeline
   # for more information !
   full_path = os.path.join(train_args["save_path"], train_args["name"], 'dict_train_args.json')
-  train_args["obs_attr_to_keep"].append("storage_setpoint")
-  dict_to_json = train_args.copy()
+  if "storage_setpoint" not in train_args["obs_attr_to_keep"]:
+    train_args["obs_attr_to_keep"].append("storage_setpoint")
+  dict_to_json = copy.deepcopy(train_args)
+  if "policy_kwargs" in dict_to_json.keys():
+    if "activation_fn" in dict_to_json["policy_kwargs"].keys():
+      dict_to_json["policy_kwargs"]["activation_fn"] = str(dict_to_json["policy_kwargs"]["activation_fn"])
   dict_to_json["n_available_chronics"] = len(env.chronics_handler.real_data.available_chronics())
   dict_to_json["gymenv_class"] = dict_to_json["gymenv_class"].__name__
   dict_to_json["learning_rate"] = dict_to_json["learning_rate"] if isinstance(dict_to_json["learning_rate"], float) else dict_to_json["learning_rate"].__name__

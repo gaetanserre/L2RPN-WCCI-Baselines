@@ -17,7 +17,7 @@ from grid2op.gym_compat import BoxGymActSpace, BoxGymObsSpace, GymEnv
 from l2rpn_baselines.PPO_SB3.utils import SB3Agent
 
 try:
-    from stable_baselines3.common.callbacks import CheckpointCallback
+    from stable_baselines3.common.callbacks import CheckpointCallback, EvalCallback
     from stable_baselines3 import PPO
     from stable_baselines3.ppo import MlpPolicy
     _CAN_USE_STABLE_BASELINE = True
@@ -230,6 +230,17 @@ def train(env,
     env_gym.action_space = BoxGymActSpace(env.action_space,
                                           attr_to_keep=act_attr_to_keep,
                                           **act_space_kwargs)
+    # define test gym environment for eval callback
+    env_test = env.copy()
+    env_gym_test = gymenv_class(env_test, **gymenv_kwargs)
+    env_gym_test.observation_space.close()
+    env_gym_test.observation_space = BoxGymObsSpace(env_test.observation_space,
+                                               attr_to_keep=obs_attr_to_keep,
+                                               **copy.deepcopy(obs_space_kwargs)) # deepcopy to avoid problems liked with mutability
+    env_gym_test.action_space.close()
+    env_gym_test.action_space = BoxGymActSpace(env_test.action_space,
+                                          attr_to_keep=act_attr_to_keep,
+                                          **copy.deepcopy(act_space_kwargs)) # deepcopy to avoid problems liked with mutability
 
     if normalize_act:
         if save_path is not None:
@@ -243,6 +254,7 @@ def train(env,
                 # attribute is scaled elsewhere
                 continue
             env_gym.action_space.normalize_attr(attr_nm)
+            env_gym_test.action_space.normalize_attr(attr_nm)
 
     if normalize_obs:
         if save_path is not None:
@@ -256,6 +268,7 @@ def train(env,
                 # attribute is scaled elsewhere
                 continue
             env_gym.observation_space.normalize_attr(attr_nm)
+            env_gym_test.observation_space.normalize_attr(attr_nm)
     
     # Save a checkpoint every "save_every_xxx_steps" steps
     checkpoint_callback = None
@@ -269,6 +282,13 @@ def train(env,
                                                      save_path=my_path,
                                                      name_prefix=name)
             writer_callback = SummaryWriterCallback(save_freq=save_every_xxx_steps)
+            eval_callback = EvalCallback(
+                        env_gym_test,
+                        n_eval_episodes=100,
+                        eval_freq=save_every_xxx_steps,
+                        deterministic=True,
+                        )
+            # callbalks_list = [checkpoint_callback, writer_callback, eval_callback]
             callbalks_list = [checkpoint_callback, writer_callback]
 
     # define the policy

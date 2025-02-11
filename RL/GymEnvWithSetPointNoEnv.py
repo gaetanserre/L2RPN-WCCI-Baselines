@@ -22,7 +22,7 @@ class GymEnvWithSetPointNoEnv(GymEnvWithRecoWithDN):
             self.seed(seed)
         self.gymobs = np.array([0.5, 0.5, 0.5, 0.5]) # commenter
         self.nb_time_step = 0
-        self.storage_setpoint = np.clip(0.5+np.cumsum(self.init_env.space_prng.uniform(-0.05, 0.05, (self.init_env.max_episode_duration()+1, self.init_env.n_storage)), axis=0), 0,1)
+        self.storage_setpoint = np.clip(0.5+np.cumsum(self.init_env.space_prng.uniform(-0.05, 0.05, (self.init_env.max_episode_duration()+1, self.init_env.n_storage)), axis=0), 0,1) # TODO faire en plusieurs lignes
         self._update_obs_attribute(self.gymobs, "storage_setpoint", self.storage_setpoint[self.nb_time_step, :])
         self._last_obs = self.gymobs
         return self.gymobs

@@ -130,15 +130,24 @@ if __name__ == "__main__":
                                      ]
     train_args["act_attr_to_keep"] = ["set_storage"] # ["curtail", "set_storage"]
     train_args["iterations"] = int(args.training_iter)
-    train_args["net_arch"] = [300, 300, 300] # [200, 200, 200, 200]
-    train_args["gamma"] = 0.999
-    train_args["gymenv_kwargs"] = {"safe_max_rho": float(args.safe_max_rho), "ind":2}
+    train_args["net_arch"] = {'pi': [300, 300, 300], 'vf': [300, 300, 300]} # [300, 300, 300]
+    train_args["policy_kwargs"] = {"activation_fn": torch.nn.ReLU}
+    train_args["gamma"] = 0.999 # 0.999
+    train_args["gymenv_kwargs"] = {"safe_max_rho": float(args.safe_max_rho), "ind":1}
     train_args["normalize_act"] = True
     train_args["normalize_obs"] = True
     train_args["save_every_xxx_steps"] = min(max(train_args["iterations"]//20, 1), 500_000)
-    train_args["n_steps"] = 2048 # 256 # 16
-    train_args["batch_size"] = 64 # 16
+    train_args["n_steps"] = 128 # 2048 # 32 # 2048 # 256 # 16
+    train_args["batch_size"] = 64 # 64 # 16
     train_args["learning_rate"] =  float(args.lr)
+    # train_args["clip_range"] = 0.4
+    # train_args["vf_coef"] = 0.2
+    # train_args["ent_coef"] = 0
+    # train_args["use_sde"] = True
+    # train_args["sde_sample_freq"] = 4
+    # train_args["max_grad_norm"] = 0.3
+    # train_args["gae_lambda"] = 0.9
+    # train_args["n_epochs"] = 5
     
     # Set the right grid2op environment parameters
     # filter_chronics = None     
@@ -226,12 +235,20 @@ if __name__ == "__main__":
         
         var_to_test = "learning_rate"
         # values_to_test = np.array([float(args.lr)])
-        # var_to_test = "batch_size"
-        values_to_test = [3e-4, 1e-5, 3e-5]
-        # values_to_test = [3e-5]
+        var_to_test = "batch_size"
+        values_to_test = [8, 16]
+        # values_to_test = [3e-6, 1e-6]
+        # values_to_test = [1e-5]
+        # var_to_test = "net_arch"
+        # values_to_test = [{'pi': [300, 300, 300], 'vf': [300, 300, 300]}]
+        # values_to_test = [{'pi': [64, 64], 'vf': [64]}, {'pi': [300, 300, 300], 'vf': [300, 300, 300]}, [300, 300, 300]]
         # var_to_test = "n_steps"
-        # values_to_test = [64, 256, 1024, 2048, 4096]
+        # values_to_test = [8, 16, 64, 128]
+        # var_to_test = "gamma"
+        # values_to_test = [0.7, 0.9, 0.99]
         # values_to_test = [3e-3, 3e-4, 3e-6, 3e-7, 3e-8]
+        # var_to_test = "policy_kwargs"
+        # values_to_test = [{**train_args["policy_kwargs"], "log_std_init": np.log(std)} for std in [3, 3**2, 3**3]]
         # var_to_test = "gymenv_kwargs"
         # values_to_test = [{**train_args["gymenv_kwargs"], "alpha":el} for el in [5., 10., 15., 20]]
         # values_to_test = [{**train_args["gymenv_kwargs"], "alpha":20}]
